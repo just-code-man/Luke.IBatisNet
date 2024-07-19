@@ -1,0 +1,13 @@
+﻿################################################################################
+# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
+################################################################################
+
+/.vs
+/ConsoleTest/bin/Debug/net6.0
+/ConsoleTest/obj
+/Luke.IBatisNet.Common/obj
+/Luke.IBatisNet.Common/bin/Debug/netstandard2.1
+/Luke.IBatisNet.DataAccess/bin/Debug/netstandard2.1
+/Luke.IBatisNet.DataAccess/obj
+/Luke.IBatisNet.DataMapper/bin/Debug/netstandard2.1
+/Luke.IBatisNet.DataMapper/obj

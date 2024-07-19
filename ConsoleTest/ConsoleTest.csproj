@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySql.Data" Version="8.0.30" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luke.IBatisNet.Common\Luke.IBatisNet.Common.csproj" />
+    <ProjectReference Include="..\Luke.IBatisNet.DataAccess\Luke.IBatisNet.DataAccess.csproj" />
+    <ProjectReference Include="..\Luke.IBatisNet.DataMapper\Luke.IBatisNet.DataMapper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="providers.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="SqlMap.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="SqlMappers\TestMapper.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
