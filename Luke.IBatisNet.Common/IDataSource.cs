@@ -52,7 +52,7 @@ namespace Luke.IBatisNet.Common
 		/// <summary>
 		/// The data provider.
 		/// </summary>
-		IDbProvider DbProvider
+		DbProvider DbProvider
 		{
 			set;
 		    get;

@@ -45,7 +45,7 @@ namespace Luke.IBatisNet.Common
 		[NonSerialized]
 		private string _connectionString = string.Empty;
 		[NonSerialized]
-		private IDbProvider _provider;
+		private DbProvider _provider;
 		[NonSerialized]
 		private string _name = string.Empty;
 		#endregion
@@ -83,7 +83,7 @@ namespace Luke.IBatisNet.Common
 		/// The provider to use for this data source.
 		/// </summary>
 		[XmlIgnore]
-		public virtual IDbProvider DbProvider
+		public virtual DbProvider DbProvider
 		{
 			get { return _provider; }
 			set { _provider = value; }

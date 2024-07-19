@@ -25,6 +25,7 @@
 
 using System;
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.Scope;
 using Luke.IBatisNet.DataMapper.TypeHandlers;
@@ -48,7 +49,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.ArgumentStrategy
         /// <param name="keys">The keys</param>
         /// <returns>The paremeter value.</returns>
 		public object GetValue(RequestScope request, ResultProperty mapping, 
-		                       ref IDataReader reader, object keys)
+		                       ref DbDataReader reader, object keys)
 		{
 			if (mapping.TypeHandler == null || 
 				mapping.TypeHandler is UnknownTypeHandler) // Find the TypeHandler

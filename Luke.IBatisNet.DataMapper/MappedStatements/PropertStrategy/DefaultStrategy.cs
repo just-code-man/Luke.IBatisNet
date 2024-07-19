@@ -25,6 +25,7 @@
 
 using System;
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.Scope;
 using Luke.IBatisNet.DataMapper.TypeHandlers;
@@ -51,7 +52,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.PropertyStrategy
 		/// <param name="reader">The reader.</param>
 		/// <param name="keys">The keys</param>
 		public void Set(RequestScope request, IResultMap resultMap, 
-			ResultProperty mapping, ref object target, IDataReader reader, object keys)
+			ResultProperty mapping, ref object target, DbDataReader reader, object keys)
 		{
             object obj = Get(request, resultMap, mapping, ref target, reader);
             resultMap.SetValueOfProperty(ref target, mapping, obj);
@@ -65,7 +66,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.PropertyStrategy
         /// <param name="mapping">The mapping.</param>
         /// <param name="reader">The reader.</param>
         /// <param name="target">The target object</param>
-        public object Get(RequestScope request, IResultMap resultMap, ResultProperty mapping, ref object target, IDataReader reader)
+        public object Get(RequestScope request, IResultMap resultMap, ResultProperty mapping, ref object target, DbDataReader reader)
         {
             if (mapping.TypeHandler == null ||mapping.TypeHandler is UnknownTypeHandler) // Find the TypeHandler
             {

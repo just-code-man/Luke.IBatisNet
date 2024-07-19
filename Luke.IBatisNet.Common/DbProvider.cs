@@ -29,6 +29,7 @@
 
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Reflection;
 using System.Xml.Serialization;
 using Luke.IBatisNet.Common.Exceptions;
@@ -69,9 +70,9 @@ namespace Luke.IBatisNet.Common
         [NonSerialized] private bool _setDbParameterPrecision = true;
         [NonSerialized] private bool _setDbParameterScale = true;
         [NonSerialized] private bool _setDbParameterSize = true;
-        [NonSerialized] private IDbConnection _templateConnection;
+        [NonSerialized] private DbConnection _templateConnection;
         [NonSerialized] private bool _templateConnectionIsICloneable;
-        [NonSerialized] private IDbDataAdapter _templateDataAdapter;
+        [NonSerialized] private DbDataAdapter _templateDataAdapter;
         [NonSerialized] private bool _templateDataAdapterIsICloneable;
         [NonSerialized] private bool _useDeriveParameters = true;
         [NonSerialized] private bool _useParameterPrefixInParameter = true;
@@ -459,12 +460,12 @@ namespace Luke.IBatisNet.Common
                 // Build the DataAdapter template 
                 type = assembly.GetType(_dataAdapterClass, true);
                 CheckPropertyType("DataAdapterClass", typeof (IDbDataAdapter), type);
-                _templateDataAdapter = (IDbDataAdapter) type.GetConstructor(Type.EmptyTypes).Invoke(null);
+                _templateDataAdapter = (DbDataAdapter) type.GetConstructor(Type.EmptyTypes).Invoke(null);
 
                 // Build the connection template 
                 type = assembly.GetType(_connectionClass, true);
                 CheckPropertyType("DbConnectionClass", typeof (IDbConnection), type);
-                _templateConnection = (IDbConnection) type.GetConstructor(Type.EmptyTypes).Invoke(null);
+                _templateConnection = (DbConnection) type.GetConstructor(Type.EmptyTypes).Invoke(null);
 
                 // Get the CommandBuilder Type
                 _commandBuilderType = assembly.GetType(_commandBuilderClass, true);
@@ -495,7 +496,7 @@ namespace Luke.IBatisNet.Common
         /// Create a connection object for this provider.
         /// </summary>
         /// <returns>An 'IDbConnection' object.</returns>
-        public virtual IDbConnection CreateConnection()
+        public virtual DbConnection CreateConnection()
         {
             // Cannot do that because on 
             // IDbCommand.Connection = cmdConnection
@@ -507,9 +508,9 @@ namespace Luke.IBatisNet.Common
 //			}
             if (_templateConnectionIsICloneable)
             {
-                return (IDbConnection) ((ICloneable) _templateConnection).Clone();
+                return (DbConnection) ((ICloneable) _templateConnection).Clone();
             }
-            return (IDbConnection) Activator.CreateInstance(_templateConnection.GetType());
+            return (DbConnection) Activator.CreateInstance(_templateConnection.GetType());
         }
 
 
@@ -517,7 +518,7 @@ namespace Luke.IBatisNet.Common
         /// Create a command object for this provider.
         /// </summary>
         /// <returns>An 'IDbCommand' object.</returns>
-        public virtual IDbCommand CreateCommand()
+        public virtual DbCommand CreateCommand()
         {
             return _templateConnection.CreateCommand();
         }
@@ -526,13 +527,13 @@ namespace Luke.IBatisNet.Common
         /// Create a dataAdapter object for this provider.
         /// </summary>
         /// <returns>An 'IDbDataAdapter' object.</returns>
-        public virtual IDbDataAdapter CreateDataAdapter()
+        public virtual DbDataAdapter CreateDataAdapter()
         {
             if (_templateDataAdapterIsICloneable)
             {
-                return (IDbDataAdapter) ((ICloneable) _templateDataAdapter).Clone();
+                return (DbDataAdapter) ((ICloneable) _templateDataAdapter).Clone();
             }
-            return (IDbDataAdapter) Activator.CreateInstance(_templateDataAdapter.GetType());
+            return (DbDataAdapter) Activator.CreateInstance(_templateDataAdapter.GetType());
         }
 
 
@@ -540,7 +541,7 @@ namespace Luke.IBatisNet.Common
         /// Create a IDbDataParameter object for this provider.
         /// </summary>
         /// <returns>An 'IDbDataParameter' object.</returns>
-        public virtual IDbDataParameter CreateDataParameter()
+        public virtual DbParameter CreateDataParameter()
         {
             return _templateConnection.CreateCommand().CreateParameter();
         }

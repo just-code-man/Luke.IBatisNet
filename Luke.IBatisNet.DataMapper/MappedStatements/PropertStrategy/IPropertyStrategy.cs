@@ -24,6 +24,7 @@
 #endregion
 
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.Scope;
 
@@ -45,7 +46,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.PropertyStrategy
 		/// <param name="keys">The keys</param>
 		void Set(RequestScope request, IResultMap resultMap, 
 		         ResultProperty mapping, ref object target, 
-		         IDataReader reader, object keys);
+		         DbDataReader reader, object keys);
 
 
         /// <summary>
@@ -56,6 +57,6 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.PropertyStrategy
         /// <param name="mapping">The mapping.</param>
         /// <param name="reader">The reader.</param>
         /// <param name="target">The target.</param>
-        object Get(RequestScope request, IResultMap resultMap, ResultProperty mapping, ref object target, IDataReader reader);
+        object Get(RequestScope request, IResultMap resultMap, ResultProperty mapping, ref object target, DbDataReader reader);
 	}
 }

@@ -24,6 +24,7 @@
 #endregion
 
 using Luke.IBatisNet.Common;
+using System.Threading.Tasks;
 
 namespace Luke.IBatisNet.DataMapper
 {

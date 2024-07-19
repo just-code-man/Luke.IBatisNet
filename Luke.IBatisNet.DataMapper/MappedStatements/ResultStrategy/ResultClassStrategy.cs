@@ -25,6 +25,7 @@
 
 using System.Collections;
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.DataMapper.Scope;
 
 namespace Luke.IBatisNet.DataMapper.MappedStatements.ResultStrategy
@@ -53,13 +54,13 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.ResultStrategy
 
         #region IResultStrategy Members
 
-		/// <summary>
-		/// Processes the specified <see cref="IDataReader"/>.
-		/// </summary>
-		/// <param name="request">The request.</param>
-		/// <param name="reader">The reader.</param>
-		/// <param name="resultObject">The result object.</param>
-        public object Process(RequestScope request, ref IDataReader reader, object resultObject)
+        /// <summary>
+        /// Processes the specified <see cref="DbDataReader"/>.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <param name="reader">The reader.</param>
+        /// <param name="resultObject">The result object.</param>
+        public object Process(RequestScope request, ref DbDataReader reader, object resultObject)
 		{
 
   			// Check if the ResultClass is a 'primitive' Type

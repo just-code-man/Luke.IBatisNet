@@ -45,7 +45,7 @@ namespace Luke.IBatisNet.DataAccess.SessionStore
 		/// <returns></returns>
 		static public ISessionStore GetSessionStore(string daoManagerName)
 		{
-            return new ThreadSessionStore(daoManagerName);
+            return new CallContextSessionStore(daoManagerName);
         }
 
 	}

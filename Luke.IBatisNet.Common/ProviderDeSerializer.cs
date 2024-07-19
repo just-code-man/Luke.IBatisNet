@@ -43,9 +43,9 @@ namespace Luke.IBatisNet.Common
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>The <see cref="IDbProvider"/></returns>
-		public static IDbProvider Deserialize(XmlNode node)
+		public static DbProvider Deserialize(XmlNode node)
 		{
-			IDbProvider provider = new DbProvider();
+			DbProvider provider = new DbProvider();
 			NameValueCollection prop = NodeUtils.ParseAttributes(node);
 
 			provider.AssemblyName = prop["assemblyName"];

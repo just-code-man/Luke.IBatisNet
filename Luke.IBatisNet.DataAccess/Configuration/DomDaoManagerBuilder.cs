@@ -669,7 +669,7 @@ namespace Luke.IBatisNet.DataAccess.Configuration
 		/// </summary>
 		/// <param name="configurationScope">The scope of the configuration</param>
 		/// <returns>A provider</returns>
-		private IDbProvider ParseProvider(ConfigurationScope configurationScope)
+		private DbProvider ParseProvider(ConfigurationScope configurationScope)
 		{
 			XmlNode node = configurationScope.NodeContext.SelectSingleNode( ApplyNamespacePrefix(XML_DATABASE_PROVIDER), configurationScope.XmlNamespaceManager);
 
@@ -684,7 +684,7 @@ namespace Luke.IBatisNet.DataAccess.Configuration
 
                 if (configurationScope.Providers.Contains(providerName) == true)
 				{
-                    return (IDbProvider)configurationScope.Providers[providerName];
+                    return (DbProvider)configurationScope.Providers[providerName];
 				}
 				else
 				{
@@ -697,7 +697,7 @@ namespace Luke.IBatisNet.DataAccess.Configuration
 			{
 				if(configurationScope.Providers.Contains(DEFAULT_PROVIDER_NAME) == true)
 				{
-					return (IDbProvider) configurationScope.Providers[DEFAULT_PROVIDER_NAME];
+					return (DbProvider) configurationScope.Providers[DEFAULT_PROVIDER_NAME];
 				}
 				else
 				{

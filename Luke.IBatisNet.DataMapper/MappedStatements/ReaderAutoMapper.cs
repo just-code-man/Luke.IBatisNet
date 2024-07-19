@@ -29,6 +29,7 @@
 using System;
 using System.Collections;
 using System.Data;
+using System.Data.Common;
 using System.Reflection;
 using Luke.IBatisNet.Common.Logging;
 using Luke.IBatisNet.Common.Utilities.Objects;
@@ -56,7 +57,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         /// <param name="reader">The reader.</param>
         /// <param name="resultObject">The result object.</param>
 		public static ResultPropertyCollection Build(DataExchangeFactory dataExchangeFactory,
-		                        IDataReader reader,
+		                        DbDataReader reader,
 			                    ref object resultObject) 
 		{
         	Type targetType = resultObject.GetType();

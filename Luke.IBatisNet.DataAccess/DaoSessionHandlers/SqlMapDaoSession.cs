@@ -27,6 +27,8 @@
 #region Imports
 
 using System.Data;
+using System.Data.Common;
+using System.Threading.Tasks;
 using Luke.IBatisNet.Common;
 using Luke.IBatisNet.DataMapper;
 
@@ -70,7 +72,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
         /// The Connection use by the session.
         /// </summary>
         /// <value></value>
-		public override IDbConnection Connection
+		public override DbConnection Connection
 		{
 			get { return _sqlMap.LocalSession.Connection; }
 		}
@@ -80,7 +82,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
         /// The Transaction use by the session.
         /// </summary>
         /// <value></value>
-		public override IDbTransaction Transaction
+		public override DbTransaction Transaction
 		{
 			get { return _sqlMap.LocalSession.Transaction; }
 		}
@@ -130,137 +132,209 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			_sqlMap.OpenConnection();
 		}
 
-		/// <summary>
-		/// Open a connection, on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		public override void OpenConnection(string connectionString)
+        public override async Task OpenConnectionAsync()
+        {
+            _sqlMap.OpenConnection();
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Open a connection, on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        public override void OpenConnection(string connectionString)
 		{
 			_sqlMap.OpenConnection(connectionString);
 		}
 
-		/// <summary>
-		/// Closes the connection
-		/// </summary>
-		public override void CloseConnection()
+        public override async Task OpenConnectionAsync(string connectionString)
+        {
+			_sqlMap.OpenConnection(connectionString);
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Closes the connection
+        /// </summary>
+        public override void CloseConnection()
 		{
 			_sqlMap.CloseConnection();
 		}
 
-		/// <summary>
-		/// Begins a transaction.
-		/// </summary>
-		public override void BeginTransaction()
+        public override async Task CloseConnectionAsync()
+        {
+            await _sqlMap.CloseConnectionAsync();
+        }
+
+        /// <summary>
+        /// Begins a transaction.
+        /// </summary>
+        public override void BeginTransaction()
 		{
 			_sqlMap.BeginTransaction();
 		}
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		public override void BeginTransaction(string connectionString)
+        public override async Task BeginTransactionAsync()
+        {
+            await _sqlMap.BeginTransactionAsync();
+        }
+
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        public override void BeginTransaction(string connectionString)
 		{
 			_sqlMap.BeginTransaction( connectionString );		
 		}
 
-		/// <summary>
-		/// Begins a database transaction
-		/// </summary>
-		/// <param name="openConnection">Open a connection.</param>
-		public override void BeginTransaction(bool openConnection)
+        public override async Task BeginTransactionAsync(string connectionString)
+        {
+            await _sqlMap.BeginTransactionAsync(connectionString);
+        }
+
+        /// <summary>
+        /// Begins a database transaction
+        /// </summary>
+        /// <param name="openConnection">Open a connection.</param>
+        public override void BeginTransaction(bool openConnection)
 		{
 			_sqlMap.BeginTransaction(openConnection);
 		}
 
-		/// <summary>
-		/// Begins a transaction at the data source with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		public override void BeginTransaction(IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(bool openConnection)
+        {
+            await _sqlMap.BeginTransactionAsync(openConnection);
+        }
+
+        /// <summary>
+        /// Begins a transaction at the data source with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        public override void BeginTransaction(IsolationLevel isolationLevel)
 		{
 			_sqlMap.BeginTransaction (isolationLevel);
 		}
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		public override void BeginTransaction(string connectionString, IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        {
+            await _sqlMap.BeginTransactionAsync(isolationLevel);
+        }
+
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        public override void BeginTransaction(string connectionString, IsolationLevel isolationLevel)
 		{
 			_sqlMap.BeginTransaction ( connectionString, isolationLevel );
 		}
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="openConnection">Open a connection.</param>
-		public override void BeginTransaction(bool openConnection, IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(string connectionString, IsolationLevel isolationLevel)
+        {
+            await _sqlMap.BeginTransactionAsync(connectionString, isolationLevel);
+        }
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="openConnection">Open a connection.</param>
+        public override void BeginTransaction(bool openConnection, IsolationLevel isolationLevel)
 		{
 			_sqlMap.BeginTransaction(openConnection, isolationLevel);
 		}
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="openConnection">Open a connection.</param>
-		public override void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(bool openConnection, IsolationLevel isolationLevel)
+        {
+            await _sqlMap.BeginTransactionAsync(openConnection, isolationLevel);
+        }
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="openConnection">Open a connection.</param>
+        public override void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel)
 		{
 			_sqlMap.BeginTransaction( connectionString, openConnection, isolationLevel );
 		}
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <remarks>
-		/// Will close the connection.
-		/// </remarks>
-		public override void CommitTransaction()
+        public override async Task BeginTransactionAsync(string connectionString, bool openConnection, IsolationLevel isolationLevel)
+        {
+            await _sqlMap.BeginTransactionAsync(connectionString, openConnection, isolationLevel);
+        }
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <remarks>
+        /// Will close the connection.
+        /// </remarks>
+        public override void CommitTransaction()
 		{
 			_sqlMap.CommitTransaction();
 		}
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		public override void CommitTransaction(bool closeConnection)
+        public override async Task CommitTransactionAsync()
+        {
+            await _sqlMap.CommitTransactionAsync();
+        }
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        public override void CommitTransaction(bool closeConnection)
 		{
 			_sqlMap.CommitTransaction(closeConnection);
 		}
 
-		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <remarks>
-		/// Will close the connection.
-		/// </remarks>
-		public override void RollBackTransaction()
+        public override async Task CommitTransactionAsync(bool closeConnection)
+        {
+            await _sqlMap.CommitTransactionAsync(closeConnection);
+        }
+
+        /// <summary>
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <remarks>
+        /// Will close the connection.
+        /// </remarks>
+        public override void RollBackTransaction()
 		{
 			_sqlMap.RollBackTransaction();
 		}
 
-		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		public override void RollBackTransaction(bool closeConnection)
+        public override async Task RollBackTransactionAsync()
+        {
+            await _sqlMap.RollBackTransactionAsync();
+        }
+
+        /// <summary>
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        public override void RollBackTransaction(bool closeConnection)
 		{
 			_sqlMap.RollBackTransaction(closeConnection);
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="commandType"></param>
-		/// <returns></returns>
-		public override IDbCommand CreateCommand(CommandType commandType)
+        public override async Task RollBackTransactionAsync(bool closeConnection)
+        {
+            await _sqlMap.RollBackTransactionAsync(closeConnection);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="commandType"></param>
+        /// <returns></returns>
+        public override DbCommand CreateCommand(CommandType commandType)
 		{
 			return _sqlMap.LocalSession.CreateCommand(commandType);
 		}
@@ -269,7 +343,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// 
 		/// </summary>
 		/// <returns></returns>
-		public override IDbDataParameter CreateDataParameter()
+		public override DbParameter CreateDataParameter()
 		{
 			return _sqlMap.LocalSession.CreateDataParameter();
 		}
@@ -278,7 +352,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// 
 		/// </summary>
 		/// <returns></returns>
-		public override IDbDataAdapter CreateDataAdapter()
+		public override DbDataAdapter CreateDataAdapter()
 		{
 			return _sqlMap.LocalSession.CreateDataAdapter();
 		}
@@ -288,7 +362,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// </summary>
 		/// <param name="command"></param>
 		/// <returns></returns>
-		public override IDbDataAdapter CreateDataAdapter(IDbCommand command)
+		public override DbDataAdapter CreateDataAdapter(DbCommand command)
 		{
 			return _sqlMap.LocalSession.CreateDataAdapter(command);
 		}
@@ -303,7 +377,13 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			_sqlMap.LocalSession.Dispose();
 			daoManager.Dispose();
 		}
-		#endregion
 
-	}
+        public override async ValueTask DisposeAsync()
+        {
+            _sqlMap.LocalSession.Dispose();
+            daoManager.Dispose();
+        }
+        #endregion
+
+    }
 }

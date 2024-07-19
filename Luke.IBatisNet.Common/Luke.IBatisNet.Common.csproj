@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryUrl>https://github.com/just-code-man/Luke.IBatisNet/</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

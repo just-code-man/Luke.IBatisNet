@@ -42,7 +42,7 @@ namespace Luke.IBatisNet.DataMapper.SessionStore
         /// <returns></returns>
         static public ISessionStore GetSessionStore(string sqlMapperId)
         {
-            return new ThreadSessionStore(sqlMapperId);
+            return new CallContextSessionStore(sqlMapperId);
         }
 	}
 }

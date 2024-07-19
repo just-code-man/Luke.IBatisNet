@@ -24,6 +24,8 @@
 #endregion
 
 using System.Data;
+using System.Data.Common;
+using System.Threading.Tasks;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.Scope;
 
@@ -41,7 +43,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.ResultStrategy
 		/// <param name="reader">The reader.</param>
 		/// <param name="resultObject">The result object.</param>
         /// <returns>The AutoResultMap use to map the resultset.</returns>
-        private AutoResultMap InitializeAutoResultMap(RequestScope request, ref IDataReader reader, ref object resultObject) 
+        private AutoResultMap InitializeAutoResultMap(RequestScope request, ref DbDataReader reader, ref object resultObject) 
 		{
 		    AutoResultMap resultMap  = request.CurrentResultMap as AutoResultMap;
 		    
@@ -84,13 +86,13 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.ResultStrategy
         #region IResultStrategy Members
 
         /// <summary>
-        /// Processes the specified <see cref="IDataReader"/> 
+        /// Processes the specified <see cref="DbDataReader"/> 
         /// a an auto result map is used.
         /// </summary>
         /// <param name="request">The request.</param>
         /// <param name="reader">The reader.</param>
         /// <param name="resultObject">The result object.</param>
-        public object Process(RequestScope request, ref IDataReader reader, object resultObject)
+        public object Process(RequestScope request, ref DbDataReader reader, object resultObject)
         {
 			object outObject = resultObject; 
 

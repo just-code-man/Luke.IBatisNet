@@ -28,6 +28,7 @@
 
 using System.Collections;
 using System.Data;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using Luke.IBatisNet.DataMapper;
 using Luke.IBatisNet.DataMapper.Configuration.ParameterMapping;
@@ -51,7 +52,7 @@ namespace Luke.IBatisNet.DataMapper.Scope
         private ErrorContext _errorContext = null;
         private ParameterMap _parameterMap = null;
         private PreparedStatement _preparedStatement = null;
-        private IDbCommand _command = null;
+        private DbCommand _command = null;
         private Queue _selects = new Queue();
         bool _rowDataFound = false;
         private static long _nextId = 0;
@@ -128,7 +129,7 @@ namespace Luke.IBatisNet.DataMapper.Scope
         /// <summary>
         ///  The <see cref="IDbCommand"/> to execute
         /// </summary>
-        public IDbCommand IDbCommand
+        public DbCommand IDbCommand
         {
             set { _command = value; }
             get { return _command; }

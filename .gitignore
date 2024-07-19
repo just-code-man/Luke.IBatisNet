@@ -11,3 +11,7 @@
 /Luke.IBatisNet.DataAccess/obj
 /Luke.IBatisNet.DataMapper/bin/Debug/netstandard2.1
 /Luke.IBatisNet.DataMapper/obj
+/ConsoleTest/bin/Release/net6.0
+/Luke.IBatisNet.Common/bin
+/Luke.IBatisNet.DataAccess/bin/Release
+/Luke.IBatisNet.DataMapper/bin/Release

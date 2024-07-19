@@ -26,6 +26,7 @@
 using System;
 using System.Collections;
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.DataMapper.Commands;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.Scope;
@@ -49,7 +50,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.ArgumentStrategy
 		/// <param name="keys">The keys</param>
 		/// <returns>The paremeter value.</returns>
 		public object GetValue(RequestScope request, ResultProperty mapping, 
-		                       ref IDataReader reader, object keys)
+		                       ref DbDataReader reader, object keys)
 		{
 			// Get the select statement
 			IMappedStatement selectStatement = request.MappedStatement.SqlMap.GetMappedStatement(mapping.Select);

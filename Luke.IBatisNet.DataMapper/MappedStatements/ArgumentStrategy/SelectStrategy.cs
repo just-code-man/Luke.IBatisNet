@@ -27,6 +27,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
+
 //using System.Reflection;
 //using Luke.IBatisNet.Common;
 //using Luke.IBatisNet.DataMapper.Commands;
@@ -92,7 +94,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.ArgumentStrategy
 		/// <param name="selectKeys">The keys</param>
 		/// <returns>The paremeter value.</returns>
 		public object GetValue(RequestScope request, ResultProperty mapping, 
-		                       ref IDataReader reader, object selectKeys)
+		                       ref DbDataReader reader, object selectKeys)
 		{
 			string paramString = mapping.ColumnName;
 			object keys = null;

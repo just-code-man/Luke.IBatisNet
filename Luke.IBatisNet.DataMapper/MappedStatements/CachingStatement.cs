@@ -28,6 +28,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 using Luke.IBatisNet.DataMapper.Commands;
 using Luke.IBatisNet.DataMapper.Configuration.Cache;
 using Luke.IBatisNet.DataMapper.Configuration.Statements;
@@ -133,6 +134,34 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return map;
         }
 
+        public async Task<IDictionary> ExecuteQueryForMapAsync(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty)
+        {
+            IDictionary map = new Hashtable();
+            RequestScope request = this.Statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _mappedStatement.PreparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            CacheKey cacheKey = this.GetCacheKey(request);
+            cacheKey.Update("ExecuteQueryForMap");
+            if (keyProperty != null)
+            {
+                cacheKey.Update(keyProperty);
+            }
+            if (valueProperty != null)
+            {
+                cacheKey.Update(valueProperty);
+            }
+
+            map = this.Statement.CacheModel[cacheKey] as IDictionary;
+            if (map == null)
+            {
+                map = await _mappedStatement.RunQueryForMapAsync(request, session, parameterObject, keyProperty, valueProperty, null);
+                this.Statement.CacheModel[cacheKey] = map;
+            }
+
+            return map;
+        }
+
         #region ExecuteQueryForMap .NET 2.0
 
         /// <summary>
@@ -174,6 +203,34 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return map;
         }
 
+        public async Task<IDictionary<K, V>> ExecuteQueryForDictionaryAsync<K, V>(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty)
+        {
+            IDictionary<K, V> map = new Dictionary<K, V>();
+            RequestScope request = this.Statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _mappedStatement.PreparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            CacheKey cacheKey = this.GetCacheKey(request);
+            cacheKey.Update("ExecuteQueryForMap");
+            if (keyProperty != null)
+            {
+                cacheKey.Update(keyProperty);
+            }
+            if (valueProperty != null)
+            {
+                cacheKey.Update(valueProperty);
+            }
+
+            map = this.Statement.CacheModel[cacheKey] as IDictionary<K, V>;
+            if (map == null)
+            {
+                map = await _mappedStatement.RunQueryForDictionaryAsync<K, V>(request, session, parameterObject, keyProperty, valueProperty, null);
+                this.Statement.CacheModel[cacheKey] = map;
+            }
+
+            return map;
+        }
+
         /// <summary>
         /// Runs a query with a custom object that gets a chance 
         /// to deal with each row as it is processed.
@@ -189,6 +246,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             return _mappedStatement.ExecuteQueryForDictionary<K, V>(session, parameterObject, keyProperty, valueProperty, rowDelegate);
         }
+
+        public async Task<IDictionary<K, V>> ExecuteQueryForDictionaryAsync<K, V>(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate<K, V> rowDelegate)
+        {
+            return await _mappedStatement.ExecuteQueryForDictionaryAsync<K, V>(session, parameterObject, keyProperty, valueProperty, rowDelegate);
+        }
         #endregion
 
         /// <summary>
@@ -203,6 +265,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return _mappedStatement.ExecuteUpdate(session, parameterObject);
         }
 
+        public async Task<int> ExecuteUpdateAsync(ISqlMapSession session, object parameterObject)
+        {
+            return await _mappedStatement.ExecuteUpdateAsync(session, parameterObject);
+        }
+
         /// <summary>
         /// Execute an insert statement. Fill the parameter object with 
         /// the ouput parameters if any, also could return the insert generated key
@@ -213,6 +280,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public object ExecuteInsert(ISqlMapSession session, object parameterObject)
         {
             return _mappedStatement.ExecuteInsert(session, parameterObject);
+        }
+
+        public async Task<object> ExecuteInsertAsync(ISqlMapSession session, object parameterObject)
+        {
+            return await _mappedStatement.ExecuteInsertAsync(session, parameterObject);
         }
 
         #region ExecuteQueryForList
@@ -226,6 +298,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public void ExecuteQueryForList(ISqlMapSession session, object parameterObject, IList resultObject)
         {
             _mappedStatement.ExecuteQueryForList(session, parameterObject, resultObject);
+        }
+
+        public async Task ExecuteQueryForListAsync(ISqlMapSession session, object parameterObject, IList resultObject)
+        {
+            await _mappedStatement.ExecuteQueryForListAsync(session, parameterObject, resultObject);
         }
 
         /// <summary>
@@ -257,6 +334,28 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 
             return list;
         }
+
+        public async Task<IList> ExecuteQueryForListAsync(ISqlMapSession session, object parameterObject, int skipResults, int maxResults)
+        {
+            IList list = null;
+            RequestScope request = this.Statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _mappedStatement.PreparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            CacheKey cacheKey = this.GetCacheKey(request);
+            cacheKey.Update("ExecuteQueryForList");
+            cacheKey.Update(skipResults);
+            cacheKey.Update(maxResults);
+
+            list = this.Statement.CacheModel[cacheKey] as IList;
+            if (list == null)
+            {
+                list = await _mappedStatement.RunQueryForListAsync(request, session, parameterObject, skipResults, maxResults);
+                this.Statement.CacheModel[cacheKey] = list;
+            }
+
+            return list;
+        }
         /// <summary>
         /// Executes the SQL and retuns all rows selected. This is exactly the same as
         /// calling ExecuteQueryForList(session, parameterObject, NO_SKIPPED_RESULTS, NO_MAXIMUM_RESULTS).
@@ -267,6 +366,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public IList ExecuteQueryForList(ISqlMapSession session, object parameterObject)
         {
             return this.ExecuteQueryForList(session, parameterObject, MappedStatement.NO_SKIPPED_RESULTS, MappedStatement.NO_MAXIMUM_RESULTS);
+        }
+
+        public async Task<IList> ExecuteQueryForListAsync(ISqlMapSession session, object parameterObject)
+        {
+            return await this.ExecuteQueryForListAsync(session, parameterObject, MappedStatement.NO_SKIPPED_RESULTS, MappedStatement.NO_MAXIMUM_RESULTS);
         }
         #endregion
 
@@ -281,6 +385,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public void ExecuteQueryForList<T>(ISqlMapSession session, object parameterObject, IList<T> resultObject)
         {
             _mappedStatement.ExecuteQueryForList(session, parameterObject, resultObject);
+        }
+
+        public async Task ExecuteQueryForListAsync<T>(ISqlMapSession session, object parameterObject, IList<T> resultObject)
+        {
+            await _mappedStatement.ExecuteQueryForListAsync(session, parameterObject, resultObject);
         }
 
         /// <summary>
@@ -312,6 +421,28 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 
             return list;
         }
+
+        public async Task<IList<T>> ExecuteQueryForListAsync<T>(ISqlMapSession session, object parameterObject, int skipResults, int maxResults)
+        {
+            IList<T> list = null;
+            RequestScope request = this.Statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _mappedStatement.PreparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            CacheKey cacheKey = this.GetCacheKey(request);
+            cacheKey.Update("ExecuteQueryForList");
+            cacheKey.Update(skipResults);
+            cacheKey.Update(maxResults);
+
+            list = this.Statement.CacheModel[cacheKey] as IList<T>;
+            if (list == null)
+            {
+                list = await _mappedStatement.RunQueryForListAsync<T>(request, session, parameterObject, skipResults, maxResults);
+                this.Statement.CacheModel[cacheKey] = list;
+            }
+
+            return list;
+        }
         /// <summary>
         /// Executes the SQL and retuns all rows selected. This is exactly the same as
         /// calling ExecuteQueryForList(session, parameterObject, NO_SKIPPED_RESULTS, NO_MAXIMUM_RESULTS).
@@ -322,6 +453,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public IList<T> ExecuteQueryForList<T>(ISqlMapSession session, object parameterObject)
         {
             return this.ExecuteQueryForList<T>(session, parameterObject, MappedStatement.NO_SKIPPED_RESULTS, MappedStatement.NO_MAXIMUM_RESULTS);
+        }
+
+        public async Task<IList<T>> ExecuteQueryForListAsync<T>(ISqlMapSession session, object parameterObject)
+        {
+            return await this.ExecuteQueryForListAsync<T>(session, parameterObject, MappedStatement.NO_SKIPPED_RESULTS, MappedStatement.NO_MAXIMUM_RESULTS);
         }
         #endregion
 
@@ -336,6 +472,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public object ExecuteQueryForObject(ISqlMapSession session, object parameterObject)
         {
             return this.ExecuteQueryForObject(session, parameterObject, null);
+        }
+
+        public async Task<object> ExecuteQueryForObjectAsync(ISqlMapSession session, object parameterObject)
+        {
+            return await this.ExecuteQueryForObjectAsync(session, parameterObject, null);
         }
 
         /// <summary>
@@ -372,6 +513,31 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return obj;
         }
 
+        public async Task<object> ExecuteQueryForObjectAsync(ISqlMapSession session, object parameterObject, object resultObject)
+        {
+            object obj = null;
+            RequestScope request = this.Statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _mappedStatement.PreparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            CacheKey cacheKey = this.GetCacheKey(request);
+            cacheKey.Update("ExecuteQueryForObject");
+
+            obj = this.Statement.CacheModel[cacheKey];
+            // check if this query has alreay been run 
+            if (obj == CacheModel.NULL_OBJECT)
+            {
+                // convert the marker object back into a null value 
+                obj = null;
+            }
+            else if (obj == null)
+            {
+                obj = await _mappedStatement.RunQueryForObjectAsync(request, session, parameterObject, resultObject);
+                this.Statement.CacheModel[cacheKey] = obj;
+            }
+
+            return obj;
+        }
 
         #region ExecuteQueryForObject .NET 2.0
 
@@ -384,6 +550,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public T ExecuteQueryForObject<T>(ISqlMapSession session, object parameterObject)
         {
             return this.ExecuteQueryForObject<T>(session, parameterObject, default(T));
+        }
+
+        public async Task<T> ExecuteQueryForObjectAsync<T>(ISqlMapSession session, object parameterObject)
+        {
+            return await this.ExecuteQueryForObjectAsync<T>(session, parameterObject, default(T));
         }
 
         /// <summary>
@@ -423,6 +594,36 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 
             return obj;
         }
+
+        public async Task<T> ExecuteQueryForObjectAsync<T>(ISqlMapSession session, object parameterObject, T resultObject)
+        {
+            T obj = default(T);
+            RequestScope request = this.Statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _mappedStatement.PreparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            CacheKey cacheKey = this.GetCacheKey(request);
+            cacheKey.Update("ExecuteQueryForObject");
+
+            object cacheObjet = this.Statement.CacheModel[cacheKey];
+            // check if this query has alreay been run 
+            if (cacheObjet is T)
+            {
+                obj = (T)cacheObjet;
+            }
+            else if (cacheObjet == CacheModel.NULL_OBJECT)
+            {
+                // convert the marker object back into a null value 
+                obj = default(T);
+            }
+            else
+            {
+                obj = (T)(await _mappedStatement.RunQueryForObjectAsync(request, session, parameterObject, resultObject));
+                this.Statement.CacheModel[cacheKey] = obj;
+            }
+
+            return obj;
+        }
         #endregion
 
         /// <summary>
@@ -437,6 +638,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return _mappedStatement.ExecuteQueryForRowDelegate(session, parameterObject, rowDelegate);
         }
 
+        public async Task<IList> ExecuteQueryForRowDelegateAsync(ISqlMapSession session, object parameterObject, RowDelegate rowDelegate)
+        {
+            return await _mappedStatement.ExecuteQueryForRowDelegateAsync(session, parameterObject, rowDelegate);
+        }
+
         /// <summary>
         /// Runs a query with a custom object that gets a chance 
         /// to deal with each row as it is processed.
@@ -447,6 +653,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public IList<T> ExecuteQueryForRowDelegate<T>(ISqlMapSession session, object parameterObject, RowDelegate<T> rowDelegate)
         {
             return _mappedStatement.ExecuteQueryForRowDelegate<T>(session, parameterObject, rowDelegate);
+        }
+
+        public async Task<IList<T>> ExecuteQueryForRowDelegateAsync<T>(ISqlMapSession session, object parameterObject, RowDelegate<T> rowDelegate)
+        {
+            return await _mappedStatement.ExecuteQueryForRowDelegateAsync<T>(session, parameterObject, rowDelegate);
         }
 
         /// <summary>
@@ -463,6 +674,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public IDictionary ExecuteQueryForMapWithRowDelegate(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate rowDelegate)
         {
             return _mappedStatement.ExecuteQueryForMapWithRowDelegate(session, parameterObject, keyProperty, valueProperty, rowDelegate);
+        }
+
+        public async Task<IDictionary> ExecuteQueryForMapWithRowDelegateAsync(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate rowDelegate)
+        {
+            return await _mappedStatement.ExecuteQueryForMapWithRowDelegateAsync(session, parameterObject, keyProperty, valueProperty, rowDelegate);
         }
 
         #endregion

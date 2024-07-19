@@ -24,6 +24,7 @@
 #endregion
 
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.Common;
 
 namespace Luke.IBatisNet.DataMapper.Commands
@@ -40,7 +41,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="reader">The <see cref="IDataReader" /> which holds the records from the Database.</param>
 		/// <param name="dbProvider">The databse provider <see cref="IDbProvider"/></param>
-		public static IDataReader Transform(IDataReader reader, IDbProvider dbProvider)
+		public static DbDataReader Transform(DbDataReader reader, DbProvider dbProvider)
 		{
             if (!dbProvider.AllowMARS && !(reader is InMemoryDataReader))
 			{

@@ -27,6 +27,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.Common.Utilities.Objects;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.MappedStatements.PropertyStrategy;
@@ -64,7 +65,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.PropertStrategy
         /// <param name="reader">The reader.</param>
         /// <param name="keys">The keys</param>
         public void Set(RequestScope request, IResultMap resultMap,
-            ResultProperty mapping, ref object target, IDataReader reader, object keys)
+            ResultProperty mapping, ref object target, DbDataReader reader, object keys)
         {
             Get(request, resultMap, mapping, ref target, reader);
         }
@@ -77,7 +78,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements.PropertStrategy
         /// <param name="mapping">The mapping.</param>
         /// <param name="reader">The reader.</param>
 		/// <param name="target">The target object</param>
-        public object Get(RequestScope request, IResultMap resultMap, ResultProperty mapping, ref object target, IDataReader reader)
+        public object Get(RequestScope request, IResultMap resultMap, ResultProperty mapping, ref object target, DbDataReader reader)
         {
             // The property is a IList
             IList list = null;

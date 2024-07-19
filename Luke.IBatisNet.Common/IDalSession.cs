@@ -27,6 +27,8 @@
 #region Imports
 using System;
 using System.Data;
+using System.Data.Common;
+using System.Threading.Tasks;
 #endregion
 
 
@@ -36,7 +38,7 @@ namespace Luke.IBatisNet.Common
 	/// A template for a session in the iBATIS.NET framwork.
 	/// Holds the connection, the transaction ...
 	/// </summary>
-	public interface IDalSession : IDisposable 
+	public interface IDalSession : IDisposable, IAsyncDisposable
 	{
 		/// <summary>
 		/// The data source use by the session.
@@ -49,7 +51,7 @@ namespace Luke.IBatisNet.Common
 		/// <summary>
 		/// The Connection use by the session.
 		/// </summary>
-		IDbConnection Connection
+		DbConnection Connection
 		{
 			get; 
 		}
@@ -57,7 +59,7 @@ namespace Luke.IBatisNet.Common
 		/// <summary>
 		/// The Transaction use by the session.
 		/// </summary>
-		IDbTransaction Transaction
+		DbTransaction Transaction
 		{
 			get;
 		}
@@ -76,104 +78,132 @@ namespace Luke.IBatisNet.Common
 		/// </summary>
 		void Complete();
 
-		/// <summary>
-		/// Open a connection.
-		/// </summary>
-		void OpenConnection();
+        /// <summary>
+        /// Open a connection.
+        /// </summary>
+        void OpenConnection();
 
-		/// <summary>
-		/// Open a connection, on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		void OpenConnection(string connectionString);
+		Task OpenConnectionAsync();
 
-		/// <summary>
-		/// close a connection
-		/// </summary>
-		void CloseConnection();
+        /// <summary>
+        /// Open a connection, on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        void OpenConnection(string connectionString);
 
-		/// <summary>
-		/// Open a connection and begin a transaction
-		/// </summary>
-		void BeginTransaction();
+        Task OpenConnectionAsync(string connectionString);
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		void BeginTransaction(string connectionString);
+        /// <summary>
+        /// close a connection
+        /// </summary>
+        void CloseConnection();
 
-		/// <summary>
-		/// Begins a database transaction
-		/// </summary>
-		/// <param name="openConnection">Open a connection.</param>
-		void BeginTransaction(bool openConnection);
+        Task CloseConnectionAsync();
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		void BeginTransaction(string connectionString, IsolationLevel isolationLevel);
+        /// <summary>
+        /// Open a connection and begin a transaction
+        /// </summary>
+        void BeginTransaction();
 
-		/// <summary>
-		/// Open a connection and begin a transaction at the data source 
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		void BeginTransaction(IsolationLevel isolationLevel);
+        Task BeginTransactionAsync();
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="openConnection">Open a connection.</param>
-		void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel);
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        void BeginTransaction(string connectionString);
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="openConnection">Open a connection.</param>
-		void BeginTransaction(bool openConnection, IsolationLevel isolationLevel);
+        Task BeginTransactionAsync(string connectionString);
 
-		/// <summary>
-		/// Commit a transaction and close the associated connection
-		/// </summary>
-		void CommitTransaction();
+        /// <summary>
+        /// Begins a database transaction
+        /// </summary>
+        /// <param name="openConnection">Open a connection.</param>
+        void BeginTransaction(bool openConnection);
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		void CommitTransaction(bool closeConnection);
+        Task BeginTransactionAsync(bool openConnection);
 
-		/// <summary>
-		/// Rollbak a transaction and close the associated connection
-		/// </summary>
-		void RollBackTransaction();
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        void BeginTransaction(string connectionString, IsolationLevel isolationLevel);
 
-		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		void RollBackTransaction(bool closeConnection);
+        Task BeginTransactionAsync(string connectionString, IsolationLevel isolationLevel);
 
-		/// <summary>
-		/// Create a command
-		/// </summary>
-		/// <param name="commandType">The type of the command</param>
-		/// <returns>An IDbCommand.</returns>
-		IDbCommand CreateCommand(CommandType commandType);
+        /// <summary>
+        /// Open a connection and begin a transaction at the data source 
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        void BeginTransaction(IsolationLevel isolationLevel);
+
+        Task BeginTransactionAsync(IsolationLevel isolationLevel);
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="openConnection">Open a connection.</param>
+        void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel);
+
+        Task BeginTransactionAsync(string connectionString, bool openConnection, IsolationLevel isolationLevel);
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="openConnection">Open a connection.</param>
+        void BeginTransaction(bool openConnection, IsolationLevel isolationLevel);
+
+        Task BeginTransactionAsync(bool openConnection, IsolationLevel isolationLevel);
+
+        /// <summary>
+        /// Commit a transaction and close the associated connection
+        /// </summary>
+        void CommitTransaction();
+
+        Task CommitTransactionAsync();
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        void CommitTransaction(bool closeConnection);
+
+        Task CommitTransactionAsync(bool closeConnection);
+
+        /// <summary>
+        /// Rollbak a transaction and close the associated connection
+        /// </summary>
+        void RollBackTransaction();
+
+        Task RollBackTransactionAsync();
+
+        /// <summary>
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        void RollBackTransaction(bool closeConnection);
+
+        Task RollBackTransactionAsync(bool closeConnection);
+
+        /// <summary>
+        /// Create a command
+        /// </summary>
+        /// <param name="commandType">The type of the command</param>
+        /// <returns>An IDbCommand.</returns>
+        DbCommand CreateCommand(CommandType commandType);
 
 		/// <summary>
 		/// Create an DataParameter
 		/// </summary>
 		/// <returns>An IDbDataParameter.</returns>
-		IDbDataParameter CreateDataParameter();
+		DbParameter CreateDataParameter();
 
 		/// <summary>
 		/// Create a DataAdapter
@@ -181,12 +211,12 @@ namespace Luke.IBatisNet.Common
 		/// <param name="command">The statement or stored procedure 
 		/// used to select records in the data source.</param>
 		/// <returns>An IDbDataAdapter.</returns>
-		IDbDataAdapter CreateDataAdapter(IDbCommand command);
+		DbDataAdapter CreateDataAdapter(DbCommand command);
 
 		/// <summary>
 		/// Create a DataAdapter
 		/// </summary>
 		/// <returns>An IDbDataAdapter.</returns>
-		IDbDataAdapter CreateDataAdapter();
+		DbDataAdapter CreateDataAdapter();
 	}
 }

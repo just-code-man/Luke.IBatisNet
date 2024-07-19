@@ -27,7 +27,8 @@
 #region Imports
 using System;
 using System.Data;
-
+using System.Data.Common;
+using System.Threading.Tasks;
 using Luke.IBatisNet.Common;
 using Luke.IBatisNet.Common.Logging;
 using Luke.IBatisNet.DataMapper.Exceptions;
@@ -74,12 +75,12 @@ namespace Luke.IBatisNet.DataMapper
 		/// <summary>
 		/// Holds value of connection
 		/// </summary>
-		private IDbConnection _connection = null;
+		private DbConnection _connection = null;
 
 		/// <summary>
 		/// Holds value of transaction
 		/// </summary>
-		private IDbTransaction _transaction = null;	
+		private DbTransaction _transaction = null;	
 		#endregion
 
 		#region Properties
@@ -109,7 +110,7 @@ namespace Luke.IBatisNet.DataMapper
         /// The Connection use by the session.
         /// </summary>
         /// <value></value>
-		public IDbConnection Connection
+		public DbConnection Connection
 		{
 			get { return _connection; }
 		}
@@ -119,7 +120,7 @@ namespace Luke.IBatisNet.DataMapper
         /// The Transaction use by the session.
         /// </summary>
         /// <value></value>
-		public IDbTransaction Transaction
+		public DbTransaction Transaction
 		{
 			get { return _transaction; }
 		}
@@ -163,6 +164,11 @@ namespace Luke.IBatisNet.DataMapper
 			this.OpenConnection(_dataSource.ConnectionString);
 		}
 
+        public async Task OpenConnectionAsync()
+        {
+            await this.OpenConnectionAsync(_dataSource.ConnectionString);
+        }
+
         /// <summary>
         /// Create the connection
         /// </summary>
@@ -180,11 +186,11 @@ namespace Luke.IBatisNet.DataMapper
             _connection.ConnectionString = connectionString;
         }
 
-		/// <summary>
-		/// Open a connection, on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		public void OpenConnection(string connectionString)
+        /// <summary>
+        /// Open a connection, on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        public void OpenConnection(string connectionString)
 		{
 			if (_connection == null)
 			{
@@ -219,10 +225,45 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		/// <summary>
-		/// Close the connection
-		/// </summary>
-		public void CloseConnection()
+        public async Task OpenConnectionAsync(string connectionString)
+        {
+            if (_connection == null)
+            {
+                CreateConnection(connectionString);
+                try
+                {
+                    await _connection.OpenAsync();
+                    if (_logger.IsDebugEnabled)
+                    {
+                        _logger.Debug(string.Format("Open Connection \"{0}\" to \"{1}\".", _connection.GetHashCode().ToString(), _dataSource.DbProvider.Description));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new DataMapperException(string.Format("Unable to open connection to \"{0}\".", _dataSource.DbProvider.Description), ex);
+                }
+            }
+            else if (_connection.State != ConnectionState.Open)
+            {
+                try
+                {
+                    await _connection.OpenAsync();
+                    if (_logger.IsDebugEnabled)
+                    {
+                        _logger.Debug(string.Format("Open Connection \"{0}\" to \"{1}\".", _connection.GetHashCode().ToString(), _dataSource.DbProvider.Description));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new DataMapperException(string.Format("Unable to open connection to \"{0}\".", _dataSource.DbProvider.Description), ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Close the connection
+        /// </summary>
+        public void CloseConnection()
 		{
 			if ( (_connection != null) && (_connection.State != ConnectionState.Closed) )
 			{
@@ -237,19 +278,40 @@ namespace Luke.IBatisNet.DataMapper
 			_connection = null;
 		}
 
-		/// <summary>
-		/// Begins a database transaction.
-		/// </summary>
-		public void BeginTransaction()
+        public async Task CloseConnectionAsync()
+        {
+            if ((_connection != null) && (_connection.State != ConnectionState.Closed))
+            {
+                await _connection.CloseAsync();
+                if (_logger.IsDebugEnabled)
+                {
+
+                    _logger.Debug(string.Format("Close Connection \"{0}\" to \"{1}\".", _connection.GetHashCode().ToString(), _dataSource.DbProvider.Description));
+                }
+                await _connection.DisposeAsync();
+            }
+            _connection = null;
+        }
+
+        /// <summary>
+        /// Begins a database transaction.
+        /// </summary>
+        public void BeginTransaction()
 		{
 			this.BeginTransaction(_dataSource.ConnectionString);
 		}
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		public void BeginTransaction(string connectionString)
+        public async Task BeginTransactionAsync()
+        {
+            await this.BeginTransactionAsync(_dataSource.ConnectionString);
+        }
+
+
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        public void BeginTransaction(string connectionString)
 		{
 			if (_connection == null || _connection.State != ConnectionState.Open)
 			{
@@ -263,11 +325,25 @@ namespace Luke.IBatisNet.DataMapper
 			_isTransactionOpen = true;
 		}
 
-		/// <summary>
-		/// Begins a database transaction
-		/// </summary>
-		/// <param name="openConnection">Open a connection.</param>
-		public void BeginTransaction(bool openConnection)
+        public async Task BeginTransactionAsync(string connectionString)
+        {
+            if (_connection == null || _connection.State != ConnectionState.Open)
+            {
+                await this.OpenConnectionAsync(connectionString);
+            }
+            _transaction = await _connection.BeginTransactionAsync();
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Begin Transaction.");
+            }
+            _isTransactionOpen = true;
+        }
+
+        /// <summary>
+        /// Begins a database transaction
+        /// </summary>
+        /// <param name="openConnection">Open a connection.</param>
+        public void BeginTransaction(bool openConnection)
 		{
 			if (openConnection)
 			{
@@ -288,23 +364,49 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		/// <summary>
-		/// Begins a database transaction with the specified isolation level.
-		/// </summary>
-		/// <param name="isolationLevel">
-		/// The isolation level under which the transaction should run.
-		/// </param>
-		public void BeginTransaction(IsolationLevel isolationLevel)
+        public async Task BeginTransactionAsync(bool openConnection)
+        {
+            if (openConnection)
+            {
+                await this.BeginTransactionAsync();
+            }
+            else
+            {
+                if (_connection == null || _connection.State != ConnectionState.Open)
+                {
+                    await this.OpenConnectionAsync();
+                }
+                _transaction = await _connection.BeginTransactionAsync();
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug("Begin Transaction.");
+                }
+                _isTransactionOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// Begins a database transaction with the specified isolation level.
+        /// </summary>
+        /// <param name="isolationLevel">
+        /// The isolation level under which the transaction should run.
+        /// </param>
+        public void BeginTransaction(IsolationLevel isolationLevel)
 		{
 			this.BeginTransaction(_dataSource.ConnectionString, isolationLevel);
 		}
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		public void BeginTransaction(string connectionString, IsolationLevel isolationLevel)
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        {
+            await this.BeginTransactionAsync(_dataSource.ConnectionString, isolationLevel);
+        }
+
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        public void BeginTransaction(string connectionString, IsolationLevel isolationLevel)
 		{
 			if (_connection == null || _connection.State != ConnectionState.Open)
 			{
@@ -318,25 +420,44 @@ namespace Luke.IBatisNet.DataMapper
 			_isTransactionOpen = true;			
 		}
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="openConnection">Open a connection.</param>
-		public void BeginTransaction(bool openConnection, IsolationLevel isolationLevel)
+        public async Task BeginTransactionAsync(string connectionString, IsolationLevel isolationLevel)
+        {
+            if (_connection == null || _connection.State != ConnectionState.Open)
+            {
+                await this.OpenConnectionAsync(connectionString);
+            }
+            _transaction = await _connection.BeginTransactionAsync(isolationLevel);
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Begin Transaction.");
+            }
+            _isTransactionOpen = true;
+        }
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="openConnection">Open a connection.</param>
+        public void BeginTransaction(bool openConnection, IsolationLevel isolationLevel)
 		{
 			this.BeginTransaction(_dataSource.ConnectionString, openConnection, isolationLevel);
 		}
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="openConnection">Open a connection.</param>
-		public void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel)
+        public async Task BeginTransactionAsync(bool openConnection, IsolationLevel isolationLevel)
+        {
+            await this.BeginTransactionAsync(_dataSource.ConnectionString, openConnection, isolationLevel);
+        }
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="openConnection">Open a connection.</param>
+        public void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel)
 		{
 			if (openConnection)
 			{
@@ -357,13 +478,34 @@ namespace Luke.IBatisNet.DataMapper
 			}			
 		}
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <remarks>
-		/// Will close the connection.
-		/// </remarks>
-		public void CommitTransaction()
+        public async Task BeginTransactionAsync(string connectionString, bool openConnection, IsolationLevel isolationLevel)
+        {
+            if (openConnection)
+            {
+                await this.BeginTransactionAsync(connectionString, isolationLevel);
+            }
+            else
+            {
+                if (_connection == null || _connection.State != ConnectionState.Open)
+                {
+                    throw new DataMapperException("SqlMapSession could not invoke StartTransaction(). A Connection must be started. Call OpenConnection() first.");
+                }
+                _transaction =  await _connection.BeginTransactionAsync(isolationLevel);
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug("Begin Transaction.");
+                }
+                _isTransactionOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <remarks>
+        /// Will close the connection.
+        /// </remarks>
+        public void CommitTransaction()
 		{
 			if (_logger.IsDebugEnabled)
 			{
@@ -380,11 +522,28 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		public void CommitTransaction(bool closeConnection)
+        public async Task CommitTransactionAsync()
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Commit Transaction.");
+            }
+            await _transaction.CommitAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+            _isTransactionOpen = false;
+
+            if (_connection.State != ConnectionState.Closed)
+            {
+                await this.CloseConnectionAsync();
+            }
+        }
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        public void CommitTransaction(bool closeConnection)
 		{
 			if (closeConnection)
 			{
@@ -403,13 +562,32 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <remarks>
-		/// Will close the connection.
-		/// </remarks>
-		public void RollBackTransaction()
+        public async Task CommitTransactionAsync(bool closeConnection)
+        {
+            if (closeConnection)
+            {
+                await this.CommitTransactionAsync();
+            }
+            else
+            {
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug("Commit Transaction.");
+                }
+                _transaction.Commit();
+                _transaction.Dispose();
+                _transaction = null;
+                _isTransactionOpen = false;
+            }
+        }
+
+        /// <summary>
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <remarks>
+        /// Will close the connection.
+        /// </remarks>
+        public void RollBackTransaction()
 		{
 			if (_logger.IsDebugEnabled)
 			{
@@ -425,11 +603,27 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		public void RollBackTransaction(bool closeConnection)
+        public async Task RollBackTransactionAsync()
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("RollBack Transaction.");
+            }
+            await _transaction.RollbackAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+            _isTransactionOpen = false;
+            if (_connection.State != ConnectionState.Closed)
+            {
+                await this.CloseConnectionAsync();
+            }
+        }
+
+        /// <summary>
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        public void RollBackTransaction(bool closeConnection)
 		{
 			if (closeConnection)
 			{
@@ -448,14 +642,33 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		/// <summary>
-		/// Create a command object
-		/// </summary>
-		/// <param name="commandType"></param>
-		/// <returns></returns>
-		public IDbCommand CreateCommand(CommandType commandType)
+        public async Task RollBackTransactionAsync(bool closeConnection)
+        {
+            if (closeConnection)
+            {
+                await this.RollBackTransactionAsync();
+            }
+            else
+            {
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug("RollBack Transaction.");
+                }
+                await _transaction.RollbackAsync();
+                await _transaction.DisposeAsync();
+                _transaction = null;
+                _isTransactionOpen = false;
+            }
+        }
+
+        /// <summary>
+        /// Create a command object
+        /// </summary>
+        /// <param name="commandType"></param>
+        /// <returns></returns>
+        public DbCommand CreateCommand(CommandType commandType)
 		{
-			IDbCommand command = _dataSource.DbProvider.CreateCommand();
+			DbCommand command = _dataSource.DbProvider.CreateCommand();
             command.CommandTimeout = _dataSource.DbProvider.DbCommandTimeout;
 			command.CommandType = commandType;
 			command.Connection = _connection;
@@ -494,11 +707,11 @@ namespace Luke.IBatisNet.DataMapper
 			return command;
 		}
 
-		/// <summary>
-		/// Create an IDataParameter
-		/// </summary>
-		/// <returns>An IDataParameter.</returns>
-		public IDbDataParameter CreateDataParameter()
+        /// <summary>
+        /// Create an IDataParameter
+        /// </summary>
+        /// <returns>An IDataParameter.</returns>
+        public DbParameter CreateDataParameter()
 		{
 			return _dataSource.DbProvider.CreateDataParameter();
 		}
@@ -507,7 +720,7 @@ namespace Luke.IBatisNet.DataMapper
 		/// 
 		/// </summary>
 		/// <returns></returns>
-		public IDbDataAdapter CreateDataAdapter()
+		public DbDataAdapter CreateDataAdapter()
 		{
 			return _dataSource.DbProvider.CreateDataAdapter();
 		}
@@ -517,9 +730,9 @@ namespace Luke.IBatisNet.DataMapper
 		/// </summary>
 		/// <param name="command"></param>
 		/// <returns></returns>
-		public IDbDataAdapter CreateDataAdapter(IDbCommand command)
+		public DbDataAdapter CreateDataAdapter(DbCommand command)
 		{
-			IDbDataAdapter dataAdapter = null;
+			DbDataAdapter dataAdapter = null;
 
 			dataAdapter = _dataSource.DbProvider.CreateDataAdapter();
 			dataAdapter.SelectCommand = command;
@@ -566,6 +779,37 @@ namespace Luke.IBatisNet.DataMapper
 			}
 		}
 
-		#endregion
-	}
+        public async ValueTask DisposeAsync()
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Dispose SqlMapSession");
+            }
+            if (_isTransactionOpen == false)
+            {
+                if (_connection.State != ConnectionState.Closed)
+                {
+                    await _sqlMapper.CloseConnectionAsync();
+                }
+            }
+            else
+            {
+                if (_consistent)
+                {
+                    await _sqlMapper.CommitTransactionAsync();
+                    _isTransactionOpen = false;
+                }
+                else
+                {
+                    if (_connection.State != ConnectionState.Closed)
+                    {
+                        await _sqlMapper.RollBackTransactionAsync();
+                        _isTransactionOpen = false;
+                    }
+                }
+            }
+        }
+
+        #endregion
+    }
 }

@@ -27,6 +27,8 @@ using System;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Data;
+using System.Data.Common;
+using System.Linq;
 using Luke.IBatisNet.Common;
 using Luke.IBatisNet.DataMapper.Exceptions;
 
@@ -38,8 +40,8 @@ namespace Luke.IBatisNet.DataMapper.Commands
 	/// session <see cref="IDbProvider"/> doesn't allow multiple open <see cref="IDataReader"/> with
 	/// the same <see cref="IDbConnection"/>.
 	/// </summary>
-	public class InMemoryDataReader : IDataReader
-	{
+	public class InMemoryDataReader : DbDataReader
+    {
 		private int _currentRowIndex = 0;
 		private int _currentResultIndex = 0;
 
@@ -52,7 +54,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		///  Creates an InMemoryDataReader from a <see cref="IDataReader" />
 		/// </summary>
 		/// <param name="reader">The <see cref="IDataReader" /> which holds the records from the Database.</param>
-		public InMemoryDataReader(IDataReader reader)
+		public InMemoryDataReader(DbDataReader reader)
 		{
 			ArrayList resultList = new ArrayList();
 
@@ -87,7 +89,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Gets the number of rows changed, inserted, or deleted by execution of the SQL statement.
 		/// </summary>
-		public int RecordsAffected
+		public override int RecordsAffected
 		{
 			get { throw new NotImplementedException( "InMemoryDataReader only used for select IList statements !" ); }
 		}
@@ -95,7 +97,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Gets a value indicating whether the data reader is closed.
 		/// </summary>
-		public bool IsClosed
+		public override bool IsClosed
 		{
 			get { return _isClosed; }
 		}
@@ -104,7 +106,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// Advances the data reader to the next result, when reading the results of batch SQL statements.
 		/// </summary>
 		/// <returns></returns>
-		public bool NextResult()
+		public override bool NextResult()
 		{
 			_currentResultIndex++;
 			if( _currentResultIndex >= _results.Length )
@@ -118,7 +120,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Closes the IDataReader 0bject.
 		/// </summary>
-		public void Close()
+		public override void Close()
 		{
 			_isClosed = true;
 		}
@@ -127,7 +129,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// Advances the IDataReader to the next record.
 		/// </summary>
 		/// <returns>true if there are more rows; otherwise, false.</returns>
-		public bool Read()
+		public override bool Read()
 		{
 			_currentRowIndex++;
 			if( _currentRowIndex >= _results[ _currentResultIndex ].RecordCount )
@@ -141,7 +143,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Gets a value indicating the depth of nesting for the current row.
 		/// </summary>
-		public int Depth
+		public override int Depth
 		{
 			get { return _currentResultIndex; }
 		}
@@ -150,7 +152,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// Returns a DataTable that describes the column metadata of the IDataReader.
 		/// </summary>
 		/// <returns></returns>
-		public DataTable GetSchemaTable()
+		public override DataTable GetSchemaTable()
 		{
 			throw new NotImplementedException( "GetSchemaTable() is not implemented, cause not use." );
 		}
@@ -177,7 +179,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public int GetInt32(int fieldIndex)
+		public override int GetInt32(int fieldIndex)
 		{
 			return (int) GetValue(fieldIndex); 
 		}
@@ -185,7 +187,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Gets the column with the specified name.
 		/// </summary>
-		public object this[string name]
+		public override object this[string name]
 		{
 			get { return this [GetOrdinal(name)]; }
 		}
@@ -193,7 +195,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Gets the column located at the specified index.
 		/// </summary>
-		public object this[int fieldIndex]
+		public override object this[int fieldIndex]
 		{
 			get { return GetValue( fieldIndex ); }
 		}
@@ -203,7 +205,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The index of the field to find. </param>
 		/// <returns>The object which will contain the field value upon return.</returns>
-		public object GetValue(int fieldIndex)
+		public override object GetValue(int fieldIndex)
 		{
 			return this.CurrentResultSet.GetValue( _currentRowIndex, fieldIndex );
 		}
@@ -213,7 +215,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public bool IsDBNull(int fieldIndex)
+		public override bool IsDBNull(int fieldIndex)
 		{
 			return (GetValue(fieldIndex) == DBNull.Value);
 		}
@@ -228,7 +230,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <param name="bufferIndex">The index for buffer to begin the read operation.</param>
 		/// <param name="length">The number of bytes to read. </param>
 		/// <returns>The actual number of bytes read.</returns>
-		public long GetBytes(int fieldIndex, long dataIndex, byte[] buffer, int bufferIndex, int length)
+		public override long GetBytes(int fieldIndex, long dataIndex, byte[] buffer, int bufferIndex, int length)
 		{
 			object value = GetValue(fieldIndex);
 			if (!(value is byte []))
@@ -261,7 +263,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public byte GetByte(int fieldIndex)
+		public override byte GetByte(int fieldIndex)
 		{
 			return (byte) GetValue(fieldIndex);
 		}
@@ -271,7 +273,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public Type GetFieldType(int fieldIndex)
+		public override Type GetFieldType(int fieldIndex)
 		{
 			return this.CurrentResultSet.GetFieldType(fieldIndex);
 		}
@@ -281,7 +283,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public decimal GetDecimal(int fieldIndex)
+		public override decimal GetDecimal(int fieldIndex)
 		{
 			return (decimal) GetValue(fieldIndex);
 		}
@@ -291,7 +293,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="values"></param>
 		/// <returns></returns>
-		public int GetValues(object[] values)
+		public override int GetValues(object[] values)
 		{
 			return this.CurrentResultSet.GetValues( _currentRowIndex, values );
 		}
@@ -301,7 +303,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public string GetName(int fieldIndex)
+		public override string GetName(int fieldIndex)
 		{
 			return this.CurrentResultSet.GetName( fieldIndex );
 		}
@@ -309,7 +311,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <summary>
 		/// Indicates the number of fields within the current record. This property is read-only.
 		/// </summary>
-		public int FieldCount
+		public override int FieldCount
 		{
 			get { return this.CurrentResultSet.FieldCount; }
 		}
@@ -319,7 +321,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public long GetInt64(int fieldIndex)
+		public override long GetInt64(int fieldIndex)
 		{
 			return (long) GetValue(fieldIndex); 
 		}
@@ -329,7 +331,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public double GetDouble(int fieldIndex)
+		public override double GetDouble(int fieldIndex)
 		{
 			return (double) GetValue(fieldIndex);
 		}
@@ -339,7 +341,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public bool GetBoolean(int fieldIndex)
+		public override bool GetBoolean(int fieldIndex)
 		{
 			return (bool) GetValue(fieldIndex);
 		}
@@ -349,7 +351,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public Guid GetGuid(int fieldIndex)
+		public override Guid GetGuid(int fieldIndex)
 		{
 			return (Guid) GetValue(fieldIndex);
 		}
@@ -359,7 +361,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public DateTime GetDateTime(int fieldIndex)
+		public override DateTime GetDateTime(int fieldIndex)
 		{
 			return (DateTime) GetValue(fieldIndex);
 		}
@@ -369,7 +371,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="colName">The name of the column. </param>
 		/// <returns>The value of the column.</returns>
-		public int GetOrdinal(string colName)
+		public  override int GetOrdinal(string colName)
 		{
 			return this.CurrentResultSet.GetOrdinal(colName);
 		}
@@ -379,7 +381,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The index of the field to find.</param>
 		/// <returns>The database type information for the specified field.</returns>
-		public string GetDataTypeName(int fieldIndex)
+		public override string GetDataTypeName(int fieldIndex)
 		{
 			return this.CurrentResultSet.GetDataTypeName(fieldIndex);
 		}
@@ -389,7 +391,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public float GetFloat(int fieldIndex)
+		public override float GetFloat(int fieldIndex)
 		{
 			return (float) GetValue(fieldIndex);
 		}
@@ -399,7 +401,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public IDataReader GetData(int fieldIndex)
+		public virtual IDataReader GetData(int fieldIndex)
 		{
 			throw new NotImplementedException( "GetData(int) is not implemented, cause not use." );
 		}
@@ -414,7 +416,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// <param name="bufferIndex">The index for buffer to begin the read operation. </param>
 		/// <param name="length">The number of bytes to read.</param>
 		/// <returns>The actual number of characters read.</returns>
-		public long GetChars(int fieldIndex, long dataIndex, char[] buffer, int bufferIndex, int length)
+		public override long GetChars(int fieldIndex, long dataIndex, char[] buffer, int bufferIndex, int length)
 		{
 			object value = GetValue(fieldIndex);
 			char [] valueBuffer = null;
@@ -451,7 +453,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public string GetString(int fieldIndex)
+		public override string GetString(int fieldIndex)
 		{
 			return (string) GetValue(fieldIndex);
 		}
@@ -461,7 +463,7 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public char GetChar(int fieldIndex)
+		public override char GetChar(int fieldIndex)
 		{
 			return (char) GetValue(fieldIndex);
 		}
@@ -471,27 +473,34 @@ namespace Luke.IBatisNet.DataMapper.Commands
 		/// </summary>
 		/// <param name="fieldIndex">The zero-based column ordinal. </param>
 		/// <returns>The value of the column.</returns>
-		public short GetInt16(int fieldIndex)
+		public override short GetInt16(int fieldIndex)
 		{
 			return (short)GetValue (fieldIndex); 
 		}
 
-		#endregion
+        public override IEnumerator GetEnumerator()
+        {
+			return _results.GetEnumerator();
+        }
+
+        #endregion
 
 
         /// <summary>
         /// Gets the current result set.
         /// </summary>
         /// <value>The current result set.</value>
-		private InMemoryResultSet CurrentResultSet
+        private InMemoryResultSet CurrentResultSet
 		{
 			get {return _results[ _currentResultIndex ];} 
 		}
 
-		/// <summary>
-		/// Represent an in-memory result set
-		/// </summary>
-		private class InMemoryResultSet
+        public override bool HasRows => _results != null && _results.Any();
+
+        /// <summary>
+        /// Represent an in-memory result set
+        /// </summary>
+        private class InMemoryResultSet
 		{
 			// [row][column]
 			private readonly object[ ][ ] _records = null;

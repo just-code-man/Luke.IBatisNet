@@ -24,6 +24,7 @@
 #endregion
 
 using System.Data;
+using System.Data.Common;
 using System.Text;
 using Luke.IBatisNet.DataMapper.Configuration.ResultMapping;
 using Luke.IBatisNet.DataMapper.Scope;
@@ -90,7 +91,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 		/// <param name="resultMap">The result map.</param>
 		/// <param name="resultObject">The result object.</param>
 		/// <returns>Indicates if we have found a row.</returns>
-		protected bool FillObjectWithReaderAndResultMap(RequestScope request,IDataReader reader,
+		protected bool FillObjectWithReaderAndResultMap(RequestScope request,DbDataReader reader,
                                                         IResultMap resultMap, ref object resultObject)
 		{
 			bool dataFound = false;

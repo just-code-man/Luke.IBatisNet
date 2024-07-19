@@ -25,6 +25,7 @@
 
 using System;
 using System.Data;
+using System.Data.Common;
 using Luke.IBatisNet.DataMapper.Scope;
 
 namespace Luke.IBatisNet.DataMapper.Commands
@@ -33,9 +34,9 @@ namespace Luke.IBatisNet.DataMapper.Commands
     /// Decorate an <see cref="System.Data.IDbCommand"></see>
     /// to auto move to next ResultMap on ExecuteReader call. 
     /// </summary>
-    public class DbCommandDecorator : IDbCommand
+    public class DbCommandDecorator : DbCommand
     {
-        private IDbCommand _innerDbCommand = null;
+        private DbCommand _innerDbCommand = null;
         private RequestScope _request = null;
 
         /// <summary>
@@ -43,168 +44,59 @@ namespace Luke.IBatisNet.DataMapper.Commands
         /// </summary>
         /// <param name="dbCommand">The db command.</param>
         /// <param name="request">The request scope</param>
-        public DbCommandDecorator(IDbCommand dbCommand, RequestScope request)
+        public DbCommandDecorator(DbCommand dbCommand, RequestScope request)
         {
             _request = request;
             _innerDbCommand = dbCommand;
         }
 
+        public override string CommandText { get => _innerDbCommand.CommandText; set => _innerDbCommand.CommandText = value; }
+        public override int CommandTimeout { get => _innerDbCommand.CommandTimeout; set => _innerDbCommand.CommandTimeout = value; }
+        public override CommandType CommandType { get => _innerDbCommand.CommandType; set => _innerDbCommand.CommandType = value; }
+        public override bool DesignTimeVisible { get => _innerDbCommand.DesignTimeVisible; set => _innerDbCommand.DesignTimeVisible = value; }
+        public override UpdateRowSource UpdatedRowSource { get => _innerDbCommand.UpdatedRowSource; set => _innerDbCommand.UpdatedRowSource = value; }
+        protected override DbConnection DbConnection { get => _innerDbCommand.Connection; set => _innerDbCommand.Connection = value; }
 
-        #region IDbCommand Members
+        protected override DbParameterCollection DbParameterCollection => _innerDbCommand.Parameters;
 
-        /// <summary>
-        /// Attempts to cancels the execution of an <see cref="System.Data.IDbCommand"></see>.
-        /// </summary>
-        void IDbCommand.Cancel()
+        protected override DbTransaction DbTransaction { get => _innerDbCommand.Transaction; set => _innerDbCommand.Transaction = value; }
+
+        public override void Cancel()
         {
             _innerDbCommand.Cancel();
         }
 
-        /// <summary>
-        /// Gets or sets the text command to run against the data source.
-        /// </summary>
-        /// <value></value>
-        /// <returns>The text command to execute. The default value is an empty string ("").</returns>
-        string IDbCommand.CommandText
-        {
-            get { return _innerDbCommand.CommandText; }
-            set {  _innerDbCommand.CommandText = value; }
-        }
-
-        /// <summary>
-        /// Gets or sets the wait time before terminating the attempt to execute a command and generating an error.
-        /// </summary>
-        /// <value></value>
-        /// <returns>The time (in seconds) to wait for the command to execute. The default value is 30 seconds.</returns>
-        /// <exception cref="System.ArgumentException">The property value assigned is less than 0. </exception>
-        int IDbCommand.CommandTimeout
-        {
-            get { return _innerDbCommand.CommandTimeout; }
-            set { _innerDbCommand.CommandTimeout = value; }
-        }
-
-        /// <summary>
-        /// Indicates or specifies how the <see cref="P:System.Data.IDbCommand.CommandText"></see> property is interpreted.
-        /// </summary>
-        /// <value></value>
-        /// <returns>One of the <see cref="System.Data.CommandType"></see> values. The default is Text.</returns>
-        CommandType IDbCommand.CommandType
-        {
-            get { return _innerDbCommand.CommandType; }
-            set { _innerDbCommand.CommandType = value; }
-        }
-
-        /// <summary>
-        /// Gets or sets the <see cref="System.Data.IDbConnection"></see> used by this instance of the <see cref="System.Data.IDbCommand"></see>.
-        /// </summary>
-        /// <value></value>
-        /// <returns>The connection to the data source.</returns>
-        IDbConnection IDbCommand.Connection
-        {
-            get { return _innerDbCommand.Connection; }
-            set { _innerDbCommand.Connection = value; }
-        }
-
-        /// <summary>
-        /// Creates a new instance of an <see cref="System.Data.IDbDataParameter"></see> object.
-        /// </summary>
-        /// <returns>An IDbDataParameter object.</returns>
-        IDbDataParameter IDbCommand.CreateParameter()
-        {
-            return _innerDbCommand.CreateParameter();
-        }
-
-        /// <summary>
-        /// Executes an SQL statement against the Connection object of a .NET Framework data provider, and returns the number of rows affected.
-        /// </summary>
-        /// <returns>The number of rows affected.</returns>
-        /// <exception cref="T:System.InvalidOperationException">The connection does not exist.-or- The connection is not open. </exception>
-        int IDbCommand.ExecuteNonQuery()
+        public override int ExecuteNonQuery()
         {
             _request.Session.OpenConnection();
             return _innerDbCommand.ExecuteNonQuery();
         }
 
-        /// <summary>
-        /// Executes the <see cref="P:System.Data.IDbCommand.CommandText"></see> against the <see cref="P:System.Data.IDbCommand.Connection"></see>, and builds an <see cref="System.Data.IDataReader"></see> using one of the <see cref="System.Data.CommandBehavior"></see> values.
-        /// </summary>
-        /// <param name="behavior">One of the <see cref="System.Data.CommandBehavior"></see> values.</param>
-        /// <returns>
-        /// An <see cref="System.Data.IDataReader"></see> object.
-        /// </returns>
-        IDataReader IDbCommand.ExecuteReader(CommandBehavior behavior)
-        {
-            _request.Session.OpenConnection();
-            return _innerDbCommand.ExecuteReader(behavior);
-        }
-
-        /// <summary>
-        /// Executes the <see cref="P:System.Data.IDbCommand.CommandText"></see> against the <see cref="P:System.Data.IDbCommand.Connection"></see> and builds an <see cref="System.Data.IDataReader"></see>.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="System.Data.IDataReader"></see> object.
-        /// </returns>
-        IDataReader IDbCommand.ExecuteReader()
-        {
-            _request.Session.OpenConnection();
-            _request.MoveNextResultMap();
-            return new DataReaderDecorator(_innerDbCommand.ExecuteReader(), _request);
-            
-        }
-
-        /// <summary>
-        /// Executes the query, and returns the first column of the first row in the resultset returned by the query. Extra columns or rows are ignored.
-        /// </summary>
-        /// <returns>
-        /// The first column of the first row in the resultset.
-        /// </returns>
-        object IDbCommand.ExecuteScalar()
+        public override object ExecuteScalar()
         {
             _request.Session.OpenConnection();
             return _innerDbCommand.ExecuteScalar();
         }
 
-        /// <summary>
-        /// Gets the <see cref="System.Data.IDataParameterCollection"></see>.
-        /// </summary>
-        /// <value></value>
-        /// <returns>The parameters of the SQL statement or stored procedure.</returns>
-        IDataParameterCollection IDbCommand.Parameters
+        public override void Prepare()
         {
-            get { return _innerDbCommand.Parameters; }
-        }
-
-        /// <summary>
-        /// Creates a prepared (or compiled) version of the command on the data source.
-        /// </summary>
-        /// <exception cref="System.InvalidOperationException">The <see cref="P:System.Data.OleDb.OleDbCommand.Connection"></see> is not set.-or- The <see cref="System.Data.OleDb.OleDbCommand.Connection"></see> is not <see cref="System.Data.OleDb.OleDbConnection.Open"></see>. </exception>
-        void IDbCommand.Prepare()
-        {
+            _request.Session.OpenConnection();
             _innerDbCommand.Prepare();
         }
 
-        /// <summary>
-        /// Gets or sets the transaction within which the Command object of a .NET Framework data provider executes.
-        /// </summary>
-        /// <value></value>
-        /// <returns>the Command object of a .NET Framework data provider executes. The default value is null.</returns>
-        IDbTransaction IDbCommand.Transaction
+        protected override DbParameter CreateDbParameter()
         {
-            get { return _innerDbCommand.Transaction; }
-            set { _innerDbCommand.Transaction = value; }
+            return _innerDbCommand.CreateParameter();
         }
 
-        /// <summary>
-        /// Gets or sets how command results are applied to the <see cref="System.Data.DataRow"></see> when used by the <see cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)"></see> method of a <see cref="System.Data.Common.DbDataAdapter"></see>.
-        /// </summary>
-        /// <value></value>
-        /// <returns>One of the <see cref="System.Data.UpdateRowSource"></see> values. The default is Both unless the command is automatically generated. Then the default is None.</returns>
-        /// <exception cref="System.ArgumentException">The value entered was not one of the <see cref="System.Data.UpdateRowSource"></see> values. </exception>
-        UpdateRowSource IDbCommand.UpdatedRowSource
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
-            get { return _innerDbCommand.UpdatedRowSource; }
-            set { _innerDbCommand.UpdatedRowSource = value; }
+            _request.Session.OpenConnection();
+            return _innerDbCommand.ExecuteReader(behavior);
         }
+
+
+        #region IDbCommand Members
 
         #endregion
 
@@ -213,9 +105,10 @@ namespace Luke.IBatisNet.DataMapper.Commands
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
-        void IDisposable.Dispose()
+        public new void Dispose()
         {
            _innerDbCommand.Dispose();
+            base.Dispose();
         }
 
         #endregion

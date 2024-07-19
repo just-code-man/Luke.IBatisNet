@@ -794,7 +794,7 @@ namespace Luke.IBatisNet.DataMapper.Configuration
 
             #region Load DataBase
             #region Choose the  provider
-            IDbProvider provider = null;
+            DbProvider provider = null;
             if ( _configScope.IsCallFromDao==false )
             {
                 provider = ParseProvider();
@@ -990,7 +990,7 @@ namespace Luke.IBatisNet.DataMapper.Configuration
         /// </summary>
         private void GetProviders()
         {
-            IDbProvider provider;
+            DbProvider provider;
             XmlDocument xmlProviders;
 
             _configScope.ErrorContext.Activity = "loading Providers";
@@ -1042,7 +1042,7 @@ namespace Luke.IBatisNet.DataMapper.Configuration
         /// Parse the provider tag.
         /// </summary>
         /// <returns>A provider object.</returns>
-        private IDbProvider ParseProvider()
+        private DbProvider ParseProvider()
         {
             _configScope.ErrorContext.Activity = "load DataBase Provider";
             XmlNode node = _configScope.SqlMapConfigDocument.SelectSingleNode( ApplyDataMapperNamespacePrefix(XML_DATABASE_PROVIDER), _configScope.XmlNamespaceManager  );
@@ -1056,7 +1056,7 @@ namespace Luke.IBatisNet.DataMapper.Configuration
 
                 if (_configScope.Providers.Contains(providerName))
                 {
-                    return (IDbProvider) _configScope.Providers[providerName];
+                    return (DbProvider) _configScope.Providers[providerName];
                 }
                 else
                 {
@@ -1069,7 +1069,7 @@ namespace Luke.IBatisNet.DataMapper.Configuration
             {
                 if (_configScope.Providers.Contains(DEFAULT_PROVIDER_NAME))
                 {
-                    return (IDbProvider) _configScope.Providers[DEFAULT_PROVIDER_NAME];
+                    return (DbProvider) _configScope.Providers[DEFAULT_PROVIDER_NAME];
                 }
                 else
                 {

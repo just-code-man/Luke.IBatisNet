@@ -43,6 +43,8 @@ using Luke.IBatisNet.DataMapper.Scope;
 using Luke.IBatisNet.DataMapper.MappedStatements.PostSelectStrategy;
 using Luke.IBatisNet.DataMapper.Exceptions;
 using Luke.IBatisNet.DataMapper.TypeHandlers;
+using System.Data.Common;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -135,7 +137,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         /// <param name="session">The current session.</param>
         /// <param name="result">The result object.</param>
         /// <param name="command">The command sql.</param>
-        private void RetrieveOutputParameters(RequestScope request, ISqlMapSession session, IDbCommand command, object result)
+        private void RetrieveOutputParameters(RequestScope request, ISqlMapSession session, DbCommand command, object result)
         {
             if (request.ParameterMap != null)
             {
@@ -172,7 +174,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 
                         // Fix IBATISNET-239
                         //"Normalize" System.DBNull parameters
-                        IDataParameter dataParameter = (IDataParameter)command.Parameters[parameterName];
+                        DbParameter dataParameter = command.Parameters[parameterName];
                         object dbValue = dataParameter.Value;
 
                         object value = null;
@@ -216,6 +218,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return ExecuteQueryForObject(session, parameterObject, null);
         }
 
+        public virtual async Task<object> ExecuteQueryForObjectAsync(ISqlMapSession session, object parameterObject)
+        {
+            return await ExecuteQueryForObjectAsync(session, parameterObject, null);
+        }
+
 
         /// <summary>
         /// Executes an SQL statement that returns a single row as an Object of the type of
@@ -233,6 +240,18 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
             obj = RunQueryForObject(request, session, parameterObject, resultObject);
+
+            return obj;
+        }
+
+        public virtual async Task<object> ExecuteQueryForObjectAsync(ISqlMapSession session, object parameterObject, object resultObject)
+        {
+            object obj = null;
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            obj = await RunQueryForObjectAsync(request, session, parameterObject, resultObject);
 
             return obj;
         }
@@ -316,9 +335,9 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             object result = resultObject;
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
                 try
                 {
                     while (reader.Read())
@@ -355,6 +374,49 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return result;
         }
 
+        internal async Task<object> RunQueryForObjectAsync(RequestScope request, ISqlMapSession session, object parameterObject, object resultObject)
+        {
+            object result = resultObject;
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                DbDataReader reader = await command.ExecuteReaderAsync();
+                try
+                {
+                    while (reader.Read())
+                    {
+                        object obj = _resultStrategy.Process(request, ref reader, resultObject);
+                        if (obj != BaseStrategy.SKIP)
+                        {
+                            result = obj;
+                        }
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+
+                ExecutePostSelect(request);
+
+                #region remark
+                // If you are using the OleDb data provider (as you are), you need to close the
+                // DataReader before output parameters are visible.
+                #endregion
+
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            RaiseExecuteEvent();
+
+            return result;
+        }
+
         #endregion
 
         #region ExecuteForObject .NET 2.0
@@ -368,6 +430,11 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         public virtual T ExecuteQueryForObject<T>(ISqlMapSession session, object parameterObject)
         {
             return ExecuteQueryForObject<T>(session, parameterObject, default(T));
+        }
+
+        public virtual async Task<T> ExecuteQueryForObjectAsync<T>(ISqlMapSession session, object parameterObject)
+        {
+            return await ExecuteQueryForObjectAsync<T>(session, parameterObject, default(T));
         }
 
 
@@ -391,6 +458,18 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return obj;
         }
 
+        public virtual async Task<T> ExecuteQueryForObjectAsync<T>(ISqlMapSession session, object parameterObject, T resultObject)
+        {
+            T obj = default(T);
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            obj = await RunQueryForObjectAsync<T>(request, session, parameterObject, resultObject);
+
+            return obj;
+        }
+
 
         /// <summary>
         /// Executes an SQL statement that returns a single row as an Object of the type of
@@ -405,9 +484,9 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             T result = resultObject;
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
                 try
                 {
                     while (reader.Read())
@@ -427,6 +506,49 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
                 {
                     reader.Close();
                     reader.Dispose();
+                }
+
+                ExecutePostSelect(request);
+
+                #region remark
+                // If you are using the OleDb data provider, you need to close the
+                // DataReader before output parameters are visible.
+                #endregion
+
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            RaiseExecuteEvent();
+
+            return result;
+        }
+
+        internal async Task<T> RunQueryForObjectAsync<T>(RequestScope request, ISqlMapSession session, object parameterObject, T resultObject)
+        {
+            T result = resultObject;
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                DbDataReader reader = await command.ExecuteReaderAsync();
+                try
+                {
+                    while (reader.Read())
+                    {
+                        object obj = _resultStrategy.Process(request, ref reader, resultObject);
+                        if (obj != BaseStrategy.SKIP)
+                        {
+                            result = (T)obj;
+                        }
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
                 }
 
                 ExecutePostSelect(request);
@@ -468,6 +590,20 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForList(request, session, parameterObject, null, rowDelegate);
         }
 
+        public virtual async Task<IList> ExecuteQueryForRowDelegateAsync(ISqlMapSession session, object parameterObject, RowDelegate rowDelegate)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            if (rowDelegate == null)
+            {
+                throw new DataMapperException("A null RowDelegate was passed to QueryForRowDelegate.");
+            }
+
+            return await RunQueryForListAsync(request, session, parameterObject, null, rowDelegate);
+        }
+
         /// <summary>
         /// Runs a query with a custom object that gets a chance 
         /// to deal with each row as it is processed.
@@ -493,6 +629,20 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForMap(request, session, parameterObject, keyProperty, valueProperty, rowDelegate);
         }
 
+        public virtual async Task<IDictionary> ExecuteQueryForMapWithRowDelegateAsync(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate rowDelegate)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            if (rowDelegate == null)
+            {
+                throw new DataMapperException("A null DictionaryRowDelegate was passed to QueryForMapWithRowDelegate.");
+            }
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForMapAsync(request, session, parameterObject, keyProperty, valueProperty, rowDelegate);
+        }
+
 
         /// <summary>
         /// Executes the SQL and retuns all rows selected. This is exactly the same as
@@ -508,6 +658,15 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
             return RunQueryForList(request, session, parameterObject, null, null);
+        }
+
+        public virtual async Task<IList> ExecuteQueryForListAsync(ISqlMapSession session, object parameterObject)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForListAsync(request, session, parameterObject, null, null);
         }
 
 
@@ -528,6 +687,15 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForList(request, session, parameterObject, skipResults, maxResults);
         }
 
+        public virtual async Task<IList> ExecuteQueryForListAsync(ISqlMapSession session, object parameterObject, int skipResults, int maxResults)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForListAsync(request, session, parameterObject, skipResults, maxResults);
+        }
+
         /// <summary>
         /// Runs the query for list.
         /// </summary>
@@ -541,7 +709,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             IList list = null;
             
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
                 if (_statement.ListClass == null)
                 {
@@ -552,7 +720,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
                     list = _statement.CreateInstanceOfListClass();
                 }
 
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
 
                 try
                 {
@@ -596,6 +764,65 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return list;
         }
 
+        internal async Task<IList> RunQueryForListAsync(RequestScope request, ISqlMapSession session, object parameterObject, int skipResults, int maxResults)
+        {
+            IList list = null;
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                if (_statement.ListClass == null)
+                {
+                    list = new ArrayList();
+                }
+                else
+                {
+                    list = _statement.CreateInstanceOfListClass();
+                }
+
+                DbDataReader reader = await command.ExecuteReaderAsync();
+
+                try
+                {
+                    // skip results
+                    for (int i = 0; i < skipResults; i++)
+                    {
+                        if (!await reader.ReadAsync())
+                        {
+                            break;
+                        }
+                    }
+
+                    // Get Results
+                    int resultsFetched = 0;
+                    while ((maxResults == NO_MAXIMUM_RESULTS || resultsFetched < maxResults)
+                        && await reader.ReadAsync())
+                    {
+                        object obj = _resultStrategy.Process(request, ref reader, null);
+                        if (obj != BaseStrategy.SKIP)
+                        {
+                            list.Add(obj);
+                        }
+                        resultsFetched++;
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+
+                ExecutePostSelect(request);
+
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            return list;
+        }
+
         /// <summary>
         /// Executes the SQL and retuns a List of result objects.
         /// </summary>
@@ -609,7 +836,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             IList list = resultObject;
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
                 if (resultObject==null)
                 {
@@ -623,7 +850,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
                     }
                 }
 
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
 
                 try
                 { 
@@ -668,6 +895,69 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return list;
         }
 
+        internal async Task<IList> RunQueryForListAsync(RequestScope request, ISqlMapSession session, object parameterObject, IList resultObject, RowDelegate rowDelegate)
+        {
+            IList list = resultObject;
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                if (resultObject == null)
+                {
+                    if (_statement.ListClass == null)
+                    {
+                        list = new ArrayList();
+                    }
+                    else
+                    {
+                        list = _statement.CreateInstanceOfListClass();
+                    }
+                }
+
+                DbDataReader reader = await command.ExecuteReaderAsync();
+
+                try
+                {
+                    do
+                    {
+                        if (rowDelegate == null)
+                        {
+                            while (reader.Read())
+                            {
+                                object obj = _resultStrategy.Process(request, ref reader, null);
+                                if (obj != BaseStrategy.SKIP)
+                                {
+                                    list.Add(obj);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                object obj = _resultStrategy.Process(request, ref reader, null);
+                                rowDelegate(obj, parameterObject, list);
+                            }
+                        }
+                    }
+                    while (await reader.NextResultAsync());
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+
+                ExecutePostSelect(request);
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            return list;
+        }
+
 
         /// <summary>
         /// Executes the SQL and and fill a strongly typed collection.
@@ -682,6 +972,15 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
             RunQueryForList(request, session, parameterObject, resultObject, null);
+        }
+
+        public virtual async Task ExecuteQueryForListAsync(ISqlMapSession session, object parameterObject, IList resultObject)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            await RunQueryForListAsync(request, session, parameterObject, resultObject, null);
         }
 
 
@@ -709,6 +1008,19 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForList<T>(request, session, parameterObject, null, rowDelegate);
         }
 
+        public virtual async Task<IList<T>> ExecuteQueryForRowDelegateAsync<T>(ISqlMapSession session, object parameterObject, RowDelegate<T> rowDelegate)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            if (rowDelegate == null)
+            {
+                throw new DataMapperException("A null RowDelegate was passed to QueryForRowDelegate.");
+            }
+            return await RunQueryForListAsync<T>(request, session, parameterObject, null, rowDelegate);
+        }
+
 
         /// <summary>
         /// Executes the SQL and retuns all rows selected. This is exactly the same as
@@ -724,6 +1036,15 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
             return RunQueryForList<T>(request, session, parameterObject, null, null);
+        }
+
+        public virtual async Task<IList<T>> ExecuteQueryForListAsync<T>(ISqlMapSession session, object parameterObject)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForListAsync<T>(request, session, parameterObject, null, null);
         }
 
 
@@ -744,6 +1065,15 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForList<T>(request, session, parameterObject, skipResults, maxResults);
         }
 
+        public virtual async Task<IList<T>> ExecuteQueryForListAsync<T>(ISqlMapSession session, object parameterObject, int skipResults, int maxResults)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForListAsync<T>(request, session, parameterObject, skipResults, maxResults);
+        }
+
 
         /// <summary>
         /// Executes the SQL and retuns a List of result objects.
@@ -758,7 +1088,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             IList<T> list = null;
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
                 if (_statement.ListClass == null)
                 {
@@ -769,7 +1099,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
                     list = _statement.CreateInstanceOfGenericListClass<T>();
                 }
 
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
                 try
                 {
                     // skip results
@@ -811,6 +1141,63 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return list;
         }
 
+        internal async Task<IList<T>> RunQueryForListAsync<T>(RequestScope request, ISqlMapSession session, object parameterObject, int skipResults, int maxResults)
+        {
+            IList<T> list = null;
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                if (_statement.ListClass == null)
+                {
+                    list = new List<T>();
+                }
+                else
+                {
+                    list = _statement.CreateInstanceOfGenericListClass<T>();
+                }
+
+                DbDataReader reader = await command.ExecuteReaderAsync();
+                try
+                {
+                    // skip results
+                    for (int i = 0; i < skipResults; i++)
+                    {
+                        if (!await reader.ReadAsync())
+                        {
+                            break;
+                        }
+                    }
+
+                    int resultsFetched = 0;
+                    while ((maxResults == NO_MAXIMUM_RESULTS || resultsFetched < maxResults)
+                        && await reader.ReadAsync())
+                    {
+                        object obj = _resultStrategy.Process(request, ref reader, null);
+                        if (obj != BaseStrategy.SKIP)
+                        {
+                            list.Add((T)obj);
+                        }
+                        resultsFetched++;
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+
+                ExecutePostSelect(request);
+
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            return list;
+        }
+
         /// <summary>
         /// Executes the SQL and retuns a List of result objects.
         /// </summary>
@@ -825,7 +1212,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             IList<T> list = resultObject;
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
                 if (resultObject == null)
                 {
@@ -839,7 +1226,7 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
                     }
                 }
 
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
                 try
                 {
                     do
@@ -883,6 +1270,69 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return list;
         }
 
+        internal async Task<IList<T>> RunQueryForListAsync<T>(RequestScope request, ISqlMapSession session,
+                                             object parameterObject, IList<T> resultObject, RowDelegate<T> rowDelegate)
+        {
+            IList<T> list = resultObject;
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                if (resultObject == null)
+                {
+                    if (_statement.ListClass == null)
+                    {
+                        list = new List<T>();
+                    }
+                    else
+                    {
+                        list = _statement.CreateInstanceOfGenericListClass<T>();
+                    }
+                }
+
+                DbDataReader reader = await command.ExecuteReaderAsync();
+                try
+                {
+                    do
+                    {
+                        if (rowDelegate == null)
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                object obj = _resultStrategy.Process(request, ref reader, null);
+                                if (obj != BaseStrategy.SKIP)
+                                {
+                                    list.Add((T)obj);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                T obj = (T)_resultStrategy.Process(request, ref reader, null);
+                                rowDelegate(obj, parameterObject, list);
+                            }
+                        }
+                    }
+                    while (await reader.NextResultAsync());
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+
+                ExecutePostSelect(request);
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            return list;
+        }
+
         /// <summary>
         /// Executes the SQL and and fill a strongly typed collection.
         /// </summary>
@@ -896,6 +1346,15 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
             RunQueryForList<T>(request, session, parameterObject, resultObject, null);
+        }
+
+        public virtual async Task ExecuteQueryForListAsync<T>(ISqlMapSession session, object parameterObject, IList<T> resultObject)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            await RunQueryForListAsync<T>(request, session, parameterObject, resultObject, null);
         }
 
         #endregion
@@ -916,9 +1375,30 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
                 rows = command.ExecuteNonQuery();
+
+                //ExecutePostSelect(request);
+
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            RaiseExecuteEvent();
+
+            return rows;
+        }
+
+        public virtual async Task<int> ExecuteUpdateAsync(ISqlMapSession session, object parameterObject)
+        {
+            int rows = 0; // the number of rows affected
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                rows = await command.ExecuteNonQueryAsync();
 
                 //ExecutePostSelect(request);
 
@@ -960,7 +1440,80 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             }
 
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
+            {
+                if (_statement is Insert)
+                {
+                    command.ExecuteNonQuery();
+                }
+                // Retrieve output parameter if the result class is specified
+                else if (_statement is Procedure && (_statement.ResultClass != null) &&
+                        _sqlMap.TypeHandlerFactory.IsSimpleType(_statement.ResultClass))
+                {
+                    IDataParameter returnValueParameter = command.CreateParameter();
+                    returnValueParameter.Direction = ParameterDirection.ReturnValue;
+                    command.Parameters.Add(returnValueParameter);
+
+                    command.ExecuteNonQuery();
+                    generatedKey = returnValueParameter.Value;
+
+                    ITypeHandler typeHandler = _sqlMap.TypeHandlerFactory.GetTypeHandler(_statement.ResultClass);
+                    generatedKey = typeHandler.GetDataBaseValue(generatedKey, _statement.ResultClass);
+                }
+                else
+                {
+                    generatedKey = command.ExecuteScalar();
+                    if ((_statement.ResultClass != null) &&
+                        _sqlMap.TypeHandlerFactory.IsSimpleType(_statement.ResultClass))
+                    {
+                        ITypeHandler typeHandler = _sqlMap.TypeHandlerFactory.GetTypeHandler(_statement.ResultClass);
+                        generatedKey = typeHandler.GetDataBaseValue(generatedKey, _statement.ResultClass);
+                    }
+                }
+
+                if (selectKeyStatement != null && selectKeyStatement.isAfter)
+                {
+                    IMappedStatement mappedStatement = _sqlMap.GetMappedStatement(selectKeyStatement.Id);
+                    generatedKey = mappedStatement.ExecuteQueryForObject(session, parameterObject);
+
+                    ObjectProbe.SetMemberValue(parameterObject, selectKeyStatement.PropertyName, generatedKey,
+                        request.DataExchangeFactory.ObjectFactory,
+                        request.DataExchangeFactory.AccessorFactory);
+                }
+
+                //ExecutePostSelect(request);
+
+                RetrieveOutputParameters(request, session, command, parameterObject);
+            }
+
+            RaiseExecuteEvent();
+
+            return generatedKey;
+        }
+
+        public virtual async Task<object> ExecuteInsertAsync(ISqlMapSession session, object parameterObject)
+        {
+            object generatedKey = null;
+            SelectKey selectKeyStatement = null;
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            if (_statement is Insert)
+            {
+                selectKeyStatement = ((Insert)_statement).SelectKey;
+            }
+
+            if (selectKeyStatement != null && !selectKeyStatement.isAfter)
+            {
+                IMappedStatement mappedStatement = _sqlMap.GetMappedStatement(selectKeyStatement.Id);
+                generatedKey = mappedStatement.ExecuteQueryForObject(session, parameterObject);
+
+                ObjectProbe.SetMemberValue(parameterObject, selectKeyStatement.PropertyName, generatedKey,
+                    request.DataExchangeFactory.ObjectFactory,
+                    request.DataExchangeFactory.AccessorFactory);
+            }
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+            using (DbCommand command = request.IDbCommand)
             {
                 if (_statement is Insert)
                 {
@@ -1035,7 +1588,16 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForMap(request, session, parameterObject, keyProperty, valueProperty, null);
         }
 
-       
+        public virtual async Task<IDictionary> ExecuteQueryForMapAsync(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForMapAsync(request, session, parameterObject, keyProperty, valueProperty, null);
+        }
+
+
         /// <summary>
         /// Executes the SQL and retuns all rows selected in a map that is keyed on the property named
         /// in the keyProperty parameter.  The value at each key will be the value of the property specified
@@ -1058,9 +1620,9 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             IDictionary map = new Hashtable();
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
-               IDataReader reader = command.ExecuteReader();
+               DbDataReader reader = command.ExecuteReader();
                try
                 {
                     
@@ -1109,6 +1671,66 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
 
         }
 
+        internal async Task<IDictionary> RunQueryForMapAsync(RequestScope request,
+            ISqlMapSession session,
+            object parameterObject,
+            string keyProperty,
+            string valueProperty,
+            DictionaryRowDelegate rowDelegate)
+        {
+            IDictionary map = new Hashtable();
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                DbDataReader reader = await command.ExecuteReaderAsync();
+                try
+                {
+
+                    if (rowDelegate == null)
+                    {
+                        while (reader.Read())
+                        {
+                            object obj = _resultStrategy.Process(request, ref reader, null);
+                            object key = ObjectProbe.GetMemberValue(obj, keyProperty, request.DataExchangeFactory.AccessorFactory);
+                            object value = obj;
+                            if (valueProperty != null)
+                            {
+                                value = ObjectProbe.GetMemberValue(obj, valueProperty, request.DataExchangeFactory.AccessorFactory);
+                            }
+                            map.Add(key, value);
+                        }
+                    }
+                    else
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            object obj = _resultStrategy.Process(request, ref reader, null);
+                            object key = ObjectProbe.GetMemberValue(obj, keyProperty, request.DataExchangeFactory.AccessorFactory);
+                            object value = obj;
+                            if (valueProperty != null)
+                            {
+                                value = ObjectProbe.GetMemberValue(obj, valueProperty, request.DataExchangeFactory.AccessorFactory);
+                            }
+                            rowDelegate(key, value, parameterObject, map);
+
+                        }
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+                ExecutePostSelect(request);
+            }
+            return map;
+
+        }
+
         /// <summary>
         /// Executes the SQL and retuns all rows selected in a map that is keyed on the property named
         /// in the keyProperty parameter.  The value at each key will be the value of the property specified
@@ -1127,6 +1749,16 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             _preparedCommand.Create(request, session, this.Statement, parameterObject);
 
             return RunQueryForDictionary<K, V>(request, session, parameterObject, keyProperty, valueProperty, null);
+
+        }
+
+        public virtual async Task<IDictionary<K, V>> ExecuteQueryForDictionaryAsync<K, V>(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForDictionaryAsync<K, V>(request, session, parameterObject, keyProperty, valueProperty, null);
 
         }
 
@@ -1155,6 +1787,20 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return RunQueryForDictionary<K, V>(request, session, parameterObject, keyProperty, valueProperty, rowDelegate);
         }
 
+        public virtual async Task<IDictionary<K, V>> ExecuteQueryForDictionaryAsync<K, V>(ISqlMapSession session, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate<K, V> rowDelegate)
+        {
+            RequestScope request = _statement.Sql.GetRequestScope(this, parameterObject, session);
+
+            if (rowDelegate == null)
+            {
+                throw new DataMapperException("A null DictionaryRowDelegate was passed to QueryForDictionary.");
+            }
+
+            _preparedCommand.Create(request, session, this.Statement, parameterObject);
+
+            return await RunQueryForDictionaryAsync<K, V>(request, session, parameterObject, keyProperty, valueProperty, rowDelegate);
+        }
+
         /// <summary>
         /// Executes the SQL and retuns all rows selected in a map that is keyed on the property named
         /// in the keyProperty parameter.  The value at each key will be the value of the property specified
@@ -1177,9 +1823,9 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
         {
             IDictionary<K, V> map = new Dictionary<K, V>();
 
-            using (IDbCommand command = request.IDbCommand)
+            using (DbCommand command = request.IDbCommand)
             {
-                IDataReader reader = command.ExecuteReader();
+                DbDataReader reader = command.ExecuteReader();
                 try
                 {
 
@@ -1234,7 +1880,74 @@ namespace Luke.IBatisNet.DataMapper.MappedStatements
             return map;
 
         }
-        
+
+        internal async Task<IDictionary<K, V>> RunQueryForDictionaryAsync<K, V>(RequestScope request,
+            ISqlMapSession session,
+            object parameterObject,
+            string keyProperty,
+            string valueProperty,
+            DictionaryRowDelegate<K, V> rowDelegate)
+        {
+            IDictionary<K, V> map = new Dictionary<K, V>();
+
+            using (DbCommand command = request.IDbCommand)
+            {
+                DbDataReader reader = await command.ExecuteReaderAsync();
+                try
+                {
+
+                    if (rowDelegate == null)
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            object obj = _resultStrategy.Process(request, ref reader, null);
+                            K key = (K)ObjectProbe.GetMemberValue(obj, keyProperty, request.DataExchangeFactory.AccessorFactory);
+                            V value = default(V);
+                            if (valueProperty != null)
+                            {
+                                value = (V)ObjectProbe.GetMemberValue(obj, valueProperty, request.DataExchangeFactory.AccessorFactory);
+                            }
+                            else
+                            {
+                                value = (V)obj;
+                            }
+                            map.Add(key, value);
+                        }
+                    }
+                    else
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            object obj = _resultStrategy.Process(request, ref reader, null);
+                            K key = (K)ObjectProbe.GetMemberValue(obj, keyProperty, request.DataExchangeFactory.AccessorFactory);
+                            V value = default(V);
+                            if (valueProperty != null)
+                            {
+                                value = (V)ObjectProbe.GetMemberValue(obj, valueProperty, request.DataExchangeFactory.AccessorFactory);
+                            }
+                            else
+                            {
+                                value = (V)obj;
+                            }
+                            rowDelegate(key, value, parameterObject, map);
+                        }
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await reader.CloseAsync();
+                    await reader.DisposeAsync();
+                }
+                ExecutePostSelect(request);
+            }
+            return map;
+
+        }
+
         #endregion
 
 

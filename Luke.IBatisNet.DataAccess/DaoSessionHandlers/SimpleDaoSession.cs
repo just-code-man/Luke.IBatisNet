@@ -28,7 +28,9 @@
 
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Reflection;
+using System.Threading.Tasks;
 using Luke.IBatisNet.Common;
 using Luke.IBatisNet.Common.Logging;
 using Luke.IBatisNet.DataAccess.Exceptions;
@@ -54,12 +56,12 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// <summary>
 		/// Holds value of connection
 		/// </summary>
-		private IDbConnection _connection = null;
+		private DbConnection _connection = null;
 
 		/// <summary>
 		/// Holds value of transaction
 		/// </summary>
-		private IDbTransaction _transaction = null;
+		private DbTransaction _transaction = null;
 		#endregion
 
 		#region Properties
@@ -79,7 +81,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
         /// The Connection use by the session.
         /// </summary>
         /// <value></value>
-		public override IDbConnection Connection
+		public override DbConnection Connection
 		{
 			get { return _connection; }
 		}
@@ -89,7 +91,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
         /// The Transaction use by the session.
         /// </summary>
         /// <value></value>
-		public override IDbTransaction Transaction
+		public override DbTransaction Transaction
 		{
 			get { return _transaction; }
 		}
@@ -147,11 +149,16 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			this.OpenConnection(_dataSource.ConnectionString);
 		}
 
-		/// <summary>
-		/// Open a connection, on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		public override void OpenConnection(string connectionString)
+        public override async Task OpenConnectionAsync()
+        {
+            await this.OpenConnectionAsync(_dataSource.ConnectionString);
+        }
+
+        /// <summary>
+        /// Open a connection, on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        public override void OpenConnection(string connectionString)
 		{
 			if (_connection == null)
 			{
@@ -187,10 +194,46 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			}
 		}
 
-		/// <summary>
-		/// Closes the connection
-		/// </summary>
-		public override void CloseConnection()
+        public override async Task OpenConnectionAsync(string connectionString)
+        {
+            if (_connection == null)
+            {
+                _connection = _dataSource.DbProvider.CreateConnection();
+                _connection.ConnectionString = connectionString;
+                try
+                {
+                    await _connection.OpenAsync();
+                    if (_logger.IsDebugEnabled)
+                    {
+                        _logger.Debug(string.Format("Open Connection \"{0}\" to \"{1}\".", _connection.GetHashCode().ToString(), _dataSource.DbProvider.Description));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new DataAccessException(string.Format("Unable to open connection to \"{0}\".", _dataSource.DbProvider.Description), ex);
+                }
+            }
+            else if (_connection.State != ConnectionState.Open)
+            {
+                try
+                {
+                    await _connection.OpenAsync();
+                    if (_logger.IsDebugEnabled)
+                    {
+                        _logger.Debug(string.Format("Open Connection \"{0}\" to \"{1}\".", _connection.GetHashCode().ToString(), _dataSource.DbProvider.Description));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new DataAccessException(string.Format("Unable to open connection to \"{0}\".", _dataSource.DbProvider.Description), ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Closes the connection
+        /// </summary>
+        public override void CloseConnection()
 		{
 			if ( (_connection != null) && (_connection.State == ConnectionState.Open) )
 			{
@@ -203,22 +246,40 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			_connection = null;
 		}
 
-		/// <summary>
-		/// Begins a transaction.
-		/// </summary>
-		/// <remarks>
-		/// Oepn a connection.
-		/// </remarks>
-		public override void BeginTransaction()
+        public override async Task CloseConnectionAsync()
+        {
+            if ((_connection != null) && (_connection.State == ConnectionState.Open))
+            {
+                await _connection.OpenAsync();
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug(string.Format("Close Connection \"{0}\" to \"{1}\".", _connection.GetHashCode().ToString(), _dataSource.DbProvider.Description));
+                }
+            }
+            _connection = null;
+        }
+
+        /// <summary>
+        /// Begins a transaction.
+        /// </summary>
+        /// <remarks>
+        /// Oepn a connection.
+        /// </remarks>
+        public override void BeginTransaction()
 		{
 			this.BeginTransaction( _dataSource.ConnectionString );
 		}
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		public override void BeginTransaction(string connectionString)
+        public override async Task BeginTransactionAsync()
+        {
+            await this.BeginTransactionAsync(_dataSource.ConnectionString);
+        }
+
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        public override void BeginTransaction(string connectionString)
 		{
 			if (_connection == null || _connection.State != ConnectionState.Open)
 			{
@@ -232,11 +293,25 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			_isTransactionOpen = true;
 		}
 
-		/// <summary>
-		/// Begins a database transaction
-		/// </summary>
-		/// <param name="openConnection">Open a connection.</param>
-		public override void BeginTransaction(bool openConnection)
+        public override async Task BeginTransactionAsync(string connectionString)
+        {
+            if (_connection == null || _connection.State != ConnectionState.Open)
+            {
+                await this.OpenConnectionAsync(connectionString);
+            }
+            _transaction = await _connection.BeginTransactionAsync();
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Begin Transaction.");
+            }
+            _isTransactionOpen = true;
+        }
+
+        /// <summary>
+        /// Begins a database transaction
+        /// </summary>
+        /// <param name="openConnection">Open a connection.</param>
+        public override void BeginTransaction(bool openConnection)
 		{
 			if (openConnection)
 			{
@@ -257,21 +332,47 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			}
 		}
 
-		/// <summary>
-		/// Begins a transaction at the data source with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		public override void BeginTransaction(IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(bool openConnection)
+        {
+            if (openConnection)
+            {
+                await this.BeginTransactionAsync();
+            }
+            else
+            {
+                if (_connection == null || _connection.State != ConnectionState.Open)
+                {
+                    throw new DataAccessException("SimpleDaoSession could not invoke BeginTransaction(). A Connection must be started. Call OpenConnection() first.");
+                }
+                _transaction = await _connection.BeginTransactionAsync();
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug("Begin Transaction.");
+                }
+                _isTransactionOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// Begins a transaction at the data source with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        public override void BeginTransaction(IsolationLevel isolationLevel)
 		{
 			this.BeginTransaction( _dataSource.ConnectionString, isolationLevel );
 		}
 
-		/// <summary>
-		/// Open a connection and begin a transaction on the specified connection string.
-		/// </summary>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		public override void BeginTransaction(string connectionString, IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        {
+            await this.BeginTransactionAsync(_dataSource.ConnectionString, isolationLevel);
+        }
+
+        /// <summary>
+        /// Open a connection and begin a transaction on the specified connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        public override void BeginTransaction(string connectionString, IsolationLevel isolationLevel)
 		{
 			if (_connection == null || _connection.State != ConnectionState.Open)
 			{
@@ -285,25 +386,44 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			_isTransactionOpen = true;			
 		}
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="openConnection">Open the connection ?</param>
-		public override void BeginTransaction(bool openConnection, IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(string connectionString, IsolationLevel isolationLevel)
+        {
+            if (_connection == null || _connection.State != ConnectionState.Open)
+            {
+                await this.OpenConnectionAsync(connectionString);
+            }
+            _transaction = await _connection.BeginTransactionAsync(isolationLevel);
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Begin Transaction.");
+            }
+            _isTransactionOpen = true;
+        }
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="openConnection">Open the connection ?</param>
+        public override void BeginTransaction(bool openConnection, IsolationLevel isolationLevel)
 		{
 			this.BeginTransaction( _dataSource.ConnectionString, openConnection, isolationLevel );
 		}
 
-		/// <summary>
-		/// Begins a transaction on the current connection
-		/// with the specified IsolationLevel value.
-		/// </summary>
-		/// <param name="isolationLevel">The transaction isolation level for this connection.</param>
-		/// <param name="connectionString">The connection string</param>
-		/// <param name="openConnection">Open a connection.</param>
-		public override void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel)
+        public override async Task BeginTransactionAsync(bool openConnection, IsolationLevel isolationLevel)
+        {
+            await this.BeginTransactionAsync(_dataSource.ConnectionString, openConnection, isolationLevel);
+        }
+
+        /// <summary>
+        /// Begins a transaction on the current connection
+        /// with the specified IsolationLevel value.
+        /// </summary>
+        /// <param name="isolationLevel">The transaction isolation level for this connection.</param>
+        /// <param name="connectionString">The connection string</param>
+        /// <param name="openConnection">Open a connection.</param>
+        public override void BeginTransaction(string connectionString, bool openConnection, IsolationLevel isolationLevel)
 		{
 			if (openConnection)
 			{
@@ -324,13 +444,34 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			}			
 		}
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <remarks>
-		/// Will close the connection.
-		/// </remarks>
-		public override void CommitTransaction()
+        public override async Task BeginTransactionAsync(string connectionString, bool openConnection, IsolationLevel isolationLevel)
+        {
+            if (openConnection)
+            {
+                await this.BeginTransactionAsync(connectionString, isolationLevel);
+            }
+            else
+            {
+                if (_connection == null || _connection.State != ConnectionState.Open)
+                {
+                    throw new DataAccessException("SimpleDaoSession could not invoke StartTransaction(). A Connection must be started. Call OpenConnection() first.");
+                }
+                _transaction = await _connection.BeginTransactionAsync(isolationLevel);
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug("Begin Transaction.");
+                }
+                _isTransactionOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <remarks>
+        /// Will close the connection.
+        /// </remarks>
+        public override void CommitTransaction()
 		{
 			if (_logger.IsDebugEnabled)
 			{
@@ -348,11 +489,29 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			}
 		}
 
-		/// <summary>
-		/// Commits the database transaction.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		public override void CommitTransaction(bool closeConnection)
+        public override async Task CommitTransactionAsync()
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Commit Transaction");
+            }
+
+            await _transaction.CommitAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+            _isTransactionOpen = false;
+
+            if (_connection.State != ConnectionState.Closed)
+            {
+                await CloseConnectionAsync();
+            }
+        }
+
+        /// <summary>
+        /// Commits the database transaction.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        public override void CommitTransaction(bool closeConnection)
 		{
 			if (_logger.IsDebugEnabled)
 			{
@@ -372,13 +531,35 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 				}
 			}
 		}
+
+        public override async Task CommitTransactionAsync(bool closeConnection)
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Commit Transaction");
+            }
+
+            await _transaction.CommitAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+            _isTransactionOpen = false;
+
+            if (closeConnection)
+            {
+                if (_connection.State != ConnectionState.Closed)
+                {
+                    await CloseConnectionAsync();
+                }
+            }
+        }
+        
 		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <remarks>
-		/// Will close the connection.
-		/// </remarks>
-		public override void RollBackTransaction()
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <remarks>
+        /// Will close the connection.
+        /// </remarks>
+        public override void RollBackTransaction()
 		{
 			if (_logger.IsDebugEnabled)
 			{
@@ -396,11 +577,29 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			}
 		}
 
-		/// <summary>
-		/// Rolls back a transaction from a pending state.
-		/// </summary>
-		/// <param name="closeConnection">Close the connection</param>
-		public override void RollBackTransaction(bool closeConnection)
+        public override async Task RollBackTransactionAsync()
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("RollBack Transaction");
+            }
+
+            await _transaction.RollbackAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+            _isTransactionOpen = false;
+
+            if (_connection.State != ConnectionState.Closed)
+            {
+                await CloseConnectionAsync();
+            }
+        }
+
+        /// <summary>
+        /// Rolls back a transaction from a pending state.
+        /// </summary>
+        /// <param name="closeConnection">Close the connection</param>
+        public override void RollBackTransaction(bool closeConnection)
 		{
 			if (_logger.IsDebugEnabled)
 			{
@@ -421,14 +620,35 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 			}
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="commandType"></param>
-		/// <returns></returns>
-		public override IDbCommand CreateCommand(CommandType commandType)
+        public override async Task RollBackTransactionAsync(bool closeConnection)
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("RollBack Transaction");
+            }
+
+            await _transaction.RollbackAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+            _isTransactionOpen = false;
+
+            if (closeConnection)
+            {
+                if (_connection.State != ConnectionState.Closed)
+                {
+                    await CloseConnectionAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="commandType"></param>
+        /// <returns></returns>
+        public override DbCommand CreateCommand(CommandType commandType)
 		{
-			IDbCommand command = null;
+			DbCommand command = null;
 
             command = _dataSource.DbProvider.CreateCommand();
 			command.CommandType = commandType;
@@ -463,9 +683,9 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// Create an IDataParameter
 		/// </summary>
 		/// <returns>An IDataParameter.</returns>
-		public override IDbDataParameter CreateDataParameter()
+		public override DbParameter CreateDataParameter()
 		{
-			IDbDataParameter dataParameter = _dataSource.DbProvider.CreateDataParameter();
+            DbParameter dataParameter = _dataSource.DbProvider.CreateDataParameter();
 
 			return dataParameter;
 		}
@@ -474,7 +694,7 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// 
 		/// </summary>
 		/// <returns></returns>
-		public override IDbDataAdapter CreateDataAdapter()
+		public override DbDataAdapter CreateDataAdapter()
 		{
 			return _dataSource.DbProvider.CreateDataAdapter();
 		}
@@ -484,9 +704,9 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 		/// </summary>
 		/// <param name="command"></param>
 		/// <returns></returns>
-		public override IDbDataAdapter CreateDataAdapter(IDbCommand command)
+		public override DbDataAdapter CreateDataAdapter(DbCommand command)
 		{
-			IDbDataAdapter dataAdapter = null;
+			DbDataAdapter dataAdapter = null;
 
 			dataAdapter = _dataSource.DbProvider.CreateDataAdapter();
 			dataAdapter.SelectCommand = command;
@@ -531,7 +751,39 @@ namespace Luke.IBatisNet.DataAccess.DaoSessionHandlers
 				}
 			}
 		}
-		#endregion
-	}
+
+        public override async ValueTask DisposeAsync()
+        {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Dispose DaoSession");
+            }
+
+            if (_isTransactionOpen == false)
+            {
+                if (_connection.State != ConnectionState.Closed)
+                {
+                    daoManager.CloseConnection();
+                }
+            }
+            else
+            {
+                if (_consistent)
+                {
+                    daoManager.CommitTransaction();
+                    _isTransactionOpen = false;
+                }
+                else
+                {
+                    if (_connection.State != ConnectionState.Closed)
+                    {
+                        daoManager.RollBackTransaction();
+                        _isTransactionOpen = false;
+                    }
+                }
+            }
+        }
+        #endregion
+    }
 
 }

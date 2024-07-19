@@ -42,6 +42,7 @@ using Luke.IBatisNet.DataMapper.SessionStore;
 using Luke.IBatisNet.DataMapper.TypeHandlers;
 using Luke.IBatisNet.Common.Utilities;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 #endregion
 
 namespace Luke.IBatisNet.DataMapper
@@ -185,12 +186,16 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns></returns>
         ISqlMapSession BeginTransaction();
 
+        Task<ISqlMapSession> BeginTransactionAsync();
+
         /// <summary>
         /// Begins the transaction.
         /// </summary>
         /// <param name="openConnection">if set to <c>true</c> [open connection].</param>
         /// <returns></returns>
         ISqlMapSession BeginTransaction(bool openConnection);
+
+        Task<ISqlMapSession> BeginTransactionAsync(bool openConnection);
 
         /// <summary>
         /// Begins the transaction.
@@ -199,6 +204,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns></returns>
         ISqlMapSession BeginTransaction(string connectionString);
 
+        Task<ISqlMapSession> BeginTransactionAsync(string connectionString);
+
         /// <summary>
         /// Begins the transaction.
         /// </summary>
@@ -206,6 +213,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="isolationLevel">The isolation level.</param>
         /// <returns></returns>
         ISqlMapSession BeginTransaction(bool openNewConnection, IsolationLevel isolationLevel);
+
+        Task<ISqlMapSession> BeginTransactionAsync(bool openNewConnection, IsolationLevel isolationLevel);
 
         /// <summary>
         /// Begins the transaction.
@@ -216,12 +225,16 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns></returns>
         ISqlMapSession BeginTransaction(string connectionString, bool openNewConnection, IsolationLevel isolationLevel);
 
+        Task<ISqlMapSession> BeginTransactionAsync(string connectionString, bool openNewConnection, IsolationLevel isolationLevel);
+
         /// <summary>
         /// Begins the transaction.
         /// </summary>
         /// <param name="isolationLevel">The isolation level.</param>
         /// <returns></returns>
         ISqlMapSession BeginTransaction(IsolationLevel isolationLevel);
+
+        Task<ISqlMapSession> BeginTransactionAsync(IsolationLevel isolationLevel);
 
         /// <summary>
         /// Begins the transaction.
@@ -230,22 +243,30 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="isolationLevel">The isolation level.</param>
         /// <returns></returns>
         ISqlMapSession BeginTransaction(string connectionString, IsolationLevel isolationLevel);
-       
+
+        Task<ISqlMapSession> BeginTransactionAsync(string connectionString, IsolationLevel isolationLevel);
+
         /// <summary>
         /// Closes the connection.
         /// </summary>
         void CloseConnection();
-        
+
+        Task CloseConnectionAsync();
+
         /// <summary>
         /// Commits the transaction.
         /// </summary>
         /// <param name="closeConnection">if set to <c>true</c> [close connection].</param>
         void CommitTransaction(bool closeConnection);
-       
+
+        Task CommitTransactionAsync(bool closeConnection);
+
         /// <summary>
         /// Commits the transaction.
         /// </summary>
         void CommitTransaction();
+
+        Task CommitTransactionAsync();
 
         /// <summary>
         /// Gets or sets the data source.
@@ -261,6 +282,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="parameterObject">The parameter object.</param>
         /// <returns>The number of rows effected.</returns>
         int Delete(string statementName, object parameterObject);
+
+        Task<int> DeleteAsync(string statementName, object parameterObject);
 
         /// <summary>
         /// Flushes all cached objects that belong to this SqlMap
@@ -298,6 +321,8 @@ namespace Luke.IBatisNet.DataMapper
         /// </returns>
         object Insert(string statementName, object parameterObject);
 
+        Task<object> InsertAsync(string statementName, object parameterObject);
+
         /// <summary>
         /// Opens the connection.
         /// </summary>
@@ -323,6 +348,8 @@ namespace Luke.IBatisNet.DataMapper
         ///<exception cref="DataMapperException">If a transaction is not in progress, or the database throws an exception.</exception>
         IDictionary QueryForDictionary(string statementName, object parameterObject, string keyProperty, string valueProperty);
 
+        Task<IDictionary> QueryForDictionaryAsync(string statementName, object parameterObject, string keyProperty, string valueProperty);
+
         /// <summary>
         ///  Alias to QueryForMap, .NET spirit.
         ///  Feature idea by Ted Husted.
@@ -332,6 +359,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="keyProperty">The property of the result object to be used as the key.</param>
         /// <returns>A IDictionary (Hashtable) of object containing the rows keyed by keyProperty.</returns>
         IDictionary QueryForDictionary(string statementName, object parameterObject, string keyProperty);
+
+        Task<IDictionary> QueryForDictionaryAsync(string statementName, object parameterObject, string keyProperty);
 
         /// <summary>
         /// Executes a Sql SELECT statement that returns data to populate
@@ -346,6 +375,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>A List of result objects.</returns>
         void QueryForList(string statementName, object parameterObject, IList resultObject);
 
+        Task QueryForListAsync(string statementName, object parameterObject, IList resultObject);
+
         /// <summary>
         /// Executes a Sql SELECT statement that returns data to populate
         /// a number of result objects.
@@ -357,6 +388,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="parameterObject">The object used to set the parameters in the SQL.</param>
         /// <returns>A List of result objects.</returns>
         IList QueryForList(string statementName, object parameterObject);
+
+        Task<IList> QueryForListAsync(string statementName, object parameterObject);
 
         /// <summary>
         /// Executes the SQL and retuns all rows selected.
@@ -371,6 +404,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>A List of result objects.</returns>
         IList QueryForList(string statementName, object parameterObject, int skipResults, int maxResults);
 
+        Task<IList> QueryForListAsync(string statementName, object parameterObject, int skipResults, int maxResults);
+
 
         /// <summary>
         ///  Executes the SQL and retuns all rows selected in a map that is keyed on the property named
@@ -381,7 +416,9 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="keyProperty">The property of the result object to be used as the key.</param>
         /// <returns>A IDictionary (Hashtable) of object containing the rows keyed by keyProperty.</returns>
         IDictionary QueryForMap(string statementName, object parameterObject, string keyProperty);
-        
+
+        Task<IDictionary> QueryForMapAsync(string statementName, object parameterObject, string keyProperty);
+
         /// <summary>
         /// Executes the SQL and retuns all rows selected in a map that is keyed on the property named
         /// in the keyProperty parameter.  The value at each key will be the value of the property specified
@@ -394,7 +431,9 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>A IDictionary (Hashtable) of object containing the rows keyed by keyProperty.</returns>
         ///<exception cref="DataMapperException">If a transaction is not in progress, or the database throws an exception.</exception>
         IDictionary QueryForMap(string statementName, object parameterObject, string keyProperty, string valueProperty);
-       
+
+        Task<IDictionary> QueryForMapAsync(string statementName, object parameterObject, string keyProperty, string valueProperty);
+
         /// <summary>
         /// Runs a query with a custom object that gets a chance to deal 
         /// with each row as it is processed.
@@ -411,6 +450,8 @@ namespace Luke.IBatisNet.DataMapper
         ///<exception cref="DataMapperException">If a transaction is not in progress, or the database throws an exception.</exception>
         IDictionary QueryForMapWithRowDelegate(string statementName, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate rowDelegate);
 
+        Task<IDictionary> QueryForMapWithRowDelegateAsync(string statementName, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate rowDelegate);
+
         /// <summary>
         /// Executes a Sql SELECT statement that returns a single object of the type of the
         /// resultObject parameter.
@@ -420,6 +461,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="resultObject">An object of the type to be returned.</param>
         /// <returns>The single result object populated with the result set data.</returns>
         object QueryForObject(string statementName, object parameterObject, object resultObject);
+
+        Task<object> QueryForObjectAsync(string statementName, object parameterObject, object resultObject);
 
         /// <summary>
         /// Executes a Sql SELECT statement that returns that returns data 
@@ -432,6 +475,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="parameterObject">The object used to set the parameters in the SQL.</param>
         /// <returns> The single result object populated with the result set data.</returns>
         object QueryForObject(string statementName, object parameterObject);
+
+        Task<object> QueryForObjectAsync(string statementName, object parameterObject);
 
         /// <summary>
         /// Executes the SQL and retuns a subset of the results in a dynamic PaginatedList that can be used to
@@ -456,17 +501,23 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="rowDelegate"></param>
         /// <returns>A List of result objects.</returns>
         IList QueryWithRowDelegate(string statementName, object parameterObject, RowDelegate rowDelegate);
-        
+
+        Task<IList> QueryWithRowDelegateAsync(string statementName, object parameterObject, RowDelegate rowDelegate);
+
         /// <summary>
         /// Rolls the back transaction.
         /// </summary>
         void RollBackTransaction();
+
+        Task RollBackTransactionAsync();
 
         /// <summary>
         /// Rolls the back transaction.
         /// </summary>
         /// <param name="closeConnection">if set to <c>true</c> [close connection].</param>
         void RollBackTransaction(bool closeConnection);
+
+        Task RollBackTransactionAsync(bool closeConnection);
 
         /// <summary>
         /// Executes a Sql UPDATE statement.
@@ -482,6 +533,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>The number of rows effected.</returns>
         int Update(string statementName, object parameterObject);
 
+        Task<int> UpdateAsync(string statementName, object parameterObject);
+
         /// <summary>
         /// Executes the SQL and retuns all rows selected in a map that is keyed on the property named
         /// in the keyProperty parameter.  The value at each key will be the value of the property specified
@@ -495,7 +548,9 @@ namespace Luke.IBatisNet.DataMapper
         ///<exception cref="DataMapperException">If a transaction is not in progress, or the database throws an exception.</exception>
         IDictionary<K, V> QueryForDictionary<K, V>(string statementName, object parameterObject, string keyProperty, string valueProperty);
 
-        
+        Task<IDictionary<K, V>> QueryForDictionaryAsync<K, V>(string statementName, object parameterObject, string keyProperty, string valueProperty);
+
+
         /// <summary>
         ///  Executes the SQL and retuns all rows selected in a map that is keyed on the property named
         ///  in the keyProperty parameter.  The value at each key will be the entire result object.
@@ -505,6 +560,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="keyProperty">The property of the result object to be used as the key.</param>
         /// <returns>A IDictionary of object containing the rows keyed by keyProperty.</returns>
         IDictionary<K, V> QueryForDictionary<K, V>(string statementName, object parameterObject, string keyProperty);
+
+        Task<IDictionary<K, V>> QueryForDictionaryAsync<K, V>(string statementName, object parameterObject, string keyProperty);
 
         /// <summary>
         /// Runs a query with a custom object that gets a chance to deal 
@@ -521,7 +578,9 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>A IDictionary (Hashtable) of object containing the rows keyed by keyProperty.</returns>
         ///<exception cref="DataMapperException">If a transaction is not in progress, or the database throws an exception.</exception>
         IDictionary<K, V> QueryForDictionary<K, V>(string statementName, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate<K, V> rowDelegate);
-                
+
+        Task<IDictionary<K, V>> QueryForDictionaryAsync<K, V>(string statementName, object parameterObject, string keyProperty, string valueProperty, DictionaryRowDelegate<K, V> rowDelegate);
+
         /// <summary>
         /// Executes a Sql SELECT statement that returns a single object of the type of the
         /// resultObject parameter.
@@ -531,6 +590,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="instanceObject">An object of the type to be returned.</param>
         /// <returns>The single result object populated with the result set data.</returns>
         T QueryForObject<T>(string statementName, object parameterObject, T instanceObject);
+
+        Task<T> QueryForObjectAsync<T>(string statementName, object parameterObject, T instanceObject);
 
         /// <summary>
         /// Executes a Sql SELECT statement that returns that returns data 
@@ -544,6 +605,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns> The single result object populated with the result set data.</returns>
         T QueryForObject<T>(string statementName, object parameterObject);
 
+        Task<T> QueryForObjectAsync<T>(string statementName, object parameterObject);
+
         /// <summary>
         /// Executes a Sql SELECT statement that returns data to populate
         /// a number of result objects.
@@ -556,6 +619,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>A List of result objects.</returns>
         IList<T> QueryForList<T>(string statementName, object parameterObject);
 
+        Task<IList<T>> QueryForListAsync<T>(string statementName, object parameterObject);
+
         /// <summary>
         /// Executes a Sql SELECT statement that returns data to populate
         /// a number of result objects.
@@ -567,6 +632,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="parameterObject">The object used to set the parameters in the SQL.</param>
         /// <param name="resultObject">An Ilist object used to hold the objects.</param>
         void QueryForList<T>(string statementName, object parameterObject, IList<T> resultObject);
+
+        Task QueryForListAsync<T>(string statementName, object parameterObject, IList<T> resultObject);
 
         /// <summary>
         /// Executes the SQL and retuns all rows selected.
@@ -581,6 +648,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <returns>A List of result objects.</returns>
         IList<T> QueryForList<T>(string statementName, object parameterObject, int skipResults, int maxResults);
 
+        Task<IList<T>> QueryForListAsync<T>(string statementName, object parameterObject, int skipResults, int maxResults);
+
         /// <summary>
         /// Runs a query for list with a custom object that gets a chance to deal 
         /// with each row as it is processed.
@@ -593,6 +662,9 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="rowDelegate"></param>
         /// <returns>A List of result objects.</returns>
         IList<T> QueryWithRowDelegate<T>(string statementName, object parameterObject, RowDelegate<T> rowDelegate);
+
+        Task<IList<T>> QueryWithRowDelegateAsync<T>(string statementName, object parameterObject, RowDelegate<T> rowDelegate);
+
         /// <summary>
         /// Executes the SQL and retuns all rows selected.
         /// <p/>
@@ -601,6 +673,8 @@ namespace Luke.IBatisNet.DataMapper
         /// <param name="parameterObject">The parameter object.</param>
         /// <returns></returns>
         DataTable QueryForDataTable(string statementName, object parameterObject);
+
+        Task<DataTable> QueryForDataTableAsync(string statementName, object parameterObject);
 
     }
 }
